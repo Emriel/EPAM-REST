@@ -1,0 +1,12 @@
+# Initial data for Gym CRM Storage
+# Format: TYPE|Field1|Field2|Field3...
+
+# Trainers: TRAINER|FirstName|LastName|Specialization
+TRAINER|John|Doe|Fitness
+TRAINER|Jane|Smith|Yoga
+TRAINER|Mike|Johnson|Boxing
+
+# Trainees: TRAINEE|FirstName|LastName|DateOfBirth|Address
+TRAINEE|Alice|Williams|1995-05-15|123 Main St
+TRAINEE|Bob|Brown|1998-08-20|456 Oak Ave
+TRAINEE|Charlie|Davis|2000-03-10|789 Pine Rd
