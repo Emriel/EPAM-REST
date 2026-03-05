@@ -91,6 +91,13 @@ public class UserServiceImpl implements UserService {
 
                 T entity = entityGetter.apply(username);
                 User user = userGetter.apply(entity);
+                
+                if (user.isActive()) {
+                        log.warn("{} is already active: username={}", entityType, username);
+                        throw new ValidationException(
+                                        entityType.substring(0, 1).toUpperCase() + entityType.substring(1) + " is already active");
+                }
+                
                 user.setActive(true);
                 saver.accept(entity);
 
@@ -110,6 +117,13 @@ public class UserServiceImpl implements UserService {
 
                 T entity = entityGetter.apply(username);
                 User user = userGetter.apply(entity);
+                
+                if (!user.isActive()) {
+                        log.warn("{} is already inactive: username={}", entityType, username);
+                        throw new ValidationException(
+                                        entityType.substring(0, 1).toUpperCase() + entityType.substring(1) + " is already inactive");
+                }
+                
                 user.setActive(false);
                 saver.accept(entity);
 
