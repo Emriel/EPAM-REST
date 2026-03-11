@@ -30,4 +30,9 @@ public interface UserService {
                         Function<T, User> userGetter,
                         Consumer<T> saver,
                         String entityType);
+
+        // Unified methods for direct User authentication and password management
+        User authenticateUser(String username, String password);
+
+        void changeUserPassword(String username, String oldPassword, String newPassword);
 }

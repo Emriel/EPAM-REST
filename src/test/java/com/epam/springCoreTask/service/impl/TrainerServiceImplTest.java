@@ -90,7 +90,6 @@ class TrainerServiceImplTest {
         when(usernameGenerator.generateUsername(eq(firstName), eq(lastName), any()))
                 .thenAnswer(invocation -> {
                     java.util.function.Predicate<String> checker = invocation.getArgument(2);
-                    // Simulate checking if username exists
                     return "jane.smith";
                 });
         when(passwordGenerator.generatePassword()).thenReturn("password123");

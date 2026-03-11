@@ -30,17 +30,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
 
         try {
-            // Try to authenticate as trainee first, then trainer
-            try {
-                gymFacade.authenticateTrainee(username, password);
-                log.debug("User authenticated successfully as trainee: {}", username);
-                return true;
-            } catch (Exception e) {
-                // If trainee auth fails, try trainer auth
-                gymFacade.authenticateTrainer(username, password);
-                log.debug("User authenticated successfully as trainer: {}", username);
-                return true;
-            }
+            gymFacade.authenticateUser(username, password);
+            log.debug("User authenticated successfully: {}", username);
+            return true;
         } catch (Exception e) {
             log.warn("Authentication failed for user: {}", username);
             throw new AuthenticationException("Invalid username or password");

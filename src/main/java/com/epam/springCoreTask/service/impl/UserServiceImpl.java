@@ -7,8 +7,10 @@ import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
 import com.epam.springCoreTask.dto.AuthenticationDTO;
+import com.epam.springCoreTask.exception.AuthenticationException;
 import com.epam.springCoreTask.exception.ValidationException;
 import com.epam.springCoreTask.model.User;
+import com.epam.springCoreTask.repository.UserRepository;
 import com.epam.springCoreTask.service.UserService;
 import com.epam.springCoreTask.util.ValidationUtil;
 
@@ -21,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UserServiceImpl implements UserService {
 
         private final ValidationUtil validationUtil;
+        private final UserRepository userRepository;
 
         @Override
         public <T> T authenticate(String username, String password,
@@ -39,7 +42,7 @@ public class UserServiceImpl implements UserService {
                 T entity = repositoryFinder.apply(auth)
                                 .orElseThrow(() -> {
                                         log.warn("Authentication failed for {}: username={}", entityType, username);
-                                        return new IllegalArgumentException("Invalid username or password");
+                                        return new AuthenticationException("Invalid username or password");
                                 });
 
                 log.info("{} authenticated successfully: username={}",
@@ -68,7 +71,7 @@ public class UserServiceImpl implements UserService {
                                 .orElseThrow(() -> {
                                         log.warn("Password change failed - invalid credentials for {}: username={}",
                                                         entityType, username);
-                                        return new ValidationException(
+                                        return new AuthenticationException(
                                                         "Invalid username or old password does not match");
                                 });
 
@@ -129,5 +132,44 @@ public class UserServiceImpl implements UserService {
 
                 log.info("{} deactivated successfully: username={}",
                                 entityType.substring(0, 1).toUpperCase() + entityType.substring(1), username);
+        }
+
+        @Override
+        public User authenticateUser(String username, String password) {
+                log.debug("Authenticating user: username={}", username);
+
+                validationUtil.validateNotBlank(username, "Username");
+                validationUtil.validateNotBlank(password, "Password");
+
+                User user = userRepository.findByUsernameAndPassword(username, password)
+                                .orElseThrow(() -> {
+                                        log.warn("Authentication failed for user: username={}", username);
+                                        return new AuthenticationException("Invalid username or password");
+                                });
+
+                log.info("User authenticated successfully: username={}", username);
+                return user;
+        }
+
+        @Override
+        public void changeUserPassword(String username, String oldPassword, String newPassword) {
+                log.debug("Changing password for user: username={}", username);
+
+                validationUtil.validateNotBlank(username, "Username");
+                validationUtil.validateNotBlank(oldPassword, "Old password");
+                validationUtil.validateNotBlank(newPassword, "New password");
+
+                User user = userRepository.findByUsernameAndPassword(username, oldPassword)
+                                .orElseThrow(() -> {
+                                        log.warn("Password change failed - invalid credentials for user: username={}",
+                                                        username);
+                                        return new AuthenticationException(
+                                                        "Invalid username or old password does not match");
+                                });
+
+                user.setPassword(newPassword);
+                userRepository.save(user);
+
+                log.info("Password changed successfully for user: username={}", username);
         }
 }

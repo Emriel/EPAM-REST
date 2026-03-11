@@ -15,9 +15,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.epam.springCoreTask.dto.AuthenticationDTO;
+import com.epam.springCoreTask.exception.AuthenticationException;
 import com.epam.springCoreTask.exception.ValidationException;
 import com.epam.springCoreTask.model.User;
 import com.epam.springCoreTask.model.Trainee;
+import com.epam.springCoreTask.repository.UserRepository;
 import com.epam.springCoreTask.util.ValidationUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,6 +27,9 @@ class UserServiceImplTest {
 
     @Mock
     private ValidationUtil validationUtil;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -63,7 +68,7 @@ class UserServiceImplTest {
         when(repositoryFinder.apply(any(AuthenticationDTO.class))).thenReturn(Optional.empty());
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        AuthenticationException exception = assertThrows(AuthenticationException.class,
                 () -> userService.authenticate(username, password, repositoryFinder, "trainee"));
 
         assertEquals("Invalid username or password", exception.getMessage());
@@ -142,7 +147,7 @@ class UserServiceImplTest {
         Consumer<Trainee> saver = mock(Consumer.class);
 
         // Act & Assert
-        ValidationException exception = assertThrows(ValidationException.class,
+        AuthenticationException exception = assertThrows(AuthenticationException.class,
                 () -> userService.changePassword(username, oldPassword, newPassword, authFinder, userGetter, saver,
                         "trainee"));
 

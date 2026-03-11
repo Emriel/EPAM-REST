@@ -20,7 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.epam.springCoreTask.config.AuthenticationInterceptor;
 import com.epam.springCoreTask.config.LoggingInterceptor;
 import com.epam.springCoreTask.exception.AuthenticationException;
-import com.epam.springCoreTask.exception.EntityNotFoundException;
 import com.epam.springCoreTask.facade.GymFacade;
 import com.epam.springCoreTask.model.Trainee;
 import com.epam.springCoreTask.model.Trainer;
@@ -60,36 +59,34 @@ class AuthControllerTest {
 
     @Test
     void testLogin_AsTrainee_Success() throws Exception {
-        when(gymFacade.authenticateTrainee("john.doe", "password123")).thenReturn(trainee);
+        User user = new User(1L, "John", "Doe", "john.doe", "password123", true);
+        when(gymFacade.authenticateUser("john.doe", "password123")).thenReturn(user);
 
         mockMvc.perform(get("/api/auth/login")
                 .param("username", "john.doe")
                 .param("password", "password123"))
                 .andExpect(status().isOk());
 
-        verify(gymFacade).authenticateTrainee("john.doe", "password123");
+        verify(gymFacade).authenticateUser("john.doe", "password123");
     }
 
     @Test
     void testLogin_AsTrainer_Success() throws Exception {
-        when(gymFacade.authenticateTrainee("jane.smith", "password123"))
-                .thenThrow(new EntityNotFoundException("Trainee not found"));
-        when(gymFacade.authenticateTrainer("jane.smith", "password123")).thenReturn(trainer);
+        User user = new User(2L, "Jane", "Smith", "jane.smith", "password123", true);
+        when(gymFacade.authenticateUser("jane.smith", "password123")).thenReturn(user);
 
         mockMvc.perform(get("/api/auth/login")
                 .param("username", "jane.smith")
                 .param("password", "password123"))
                 .andExpect(status().isOk());
 
-        verify(gymFacade).authenticateTrainer("jane.smith", "password123");
+        verify(gymFacade).authenticateUser("jane.smith", "password123");
     }
 
     @Test
     void testLogin_InvalidCredentials_Unauthorized() throws Exception {
-        when(gymFacade.authenticateTrainee("invalid", "wrong"))
-                .thenThrow(new EntityNotFoundException("User not found"));
-        when(gymFacade.authenticateTrainer("invalid", "wrong"))
-                .thenThrow(new EntityNotFoundException("User not found"));
+        when(gymFacade.authenticateUser("invalid", "wrong"))
+                .thenThrow(new AuthenticationException("Invalid username or password"));
 
         mockMvc.perform(get("/api/auth/login")
                 .param("username", "invalid")
@@ -106,7 +103,7 @@ class AuthControllerTest {
 
     @Test
     void testChangePassword_AsTrainee_Success() throws Exception {
-        doNothing().when(gymFacade).changeTraineePassword("john.doe", "oldPass", "newPass");
+        doNothing().when(gymFacade).changeUserPassword("john.doe", "oldPass", "newPass");
 
         String requestBody = "{\n" +
                 "  \"username\": \"john.doe\",\n" +
@@ -119,14 +116,12 @@ class AuthControllerTest {
                 .content(requestBody))
                 .andExpect(status().isOk());
 
-        verify(gymFacade).changeTraineePassword("john.doe", "oldPass", "newPass");
+        verify(gymFacade).changeUserPassword("john.doe", "oldPass", "newPass");
     }
 
     @Test
     void testChangePassword_AsTrainer_Success() throws Exception {
-        doThrow(new EntityNotFoundException("Trainee not found"))
-                .when(gymFacade).changeTraineePassword("jane.smith", "oldPass", "newPass");
-        doNothing().when(gymFacade).changeTrainerPassword("jane.smith", "oldPass", "newPass");
+        doNothing().when(gymFacade).changeUserPassword("jane.smith", "oldPass", "newPass");
 
         String requestBody = "{\n" +
                 "  \"username\": \"jane.smith\",\n" +
@@ -139,15 +134,13 @@ class AuthControllerTest {
                 .content(requestBody))
                 .andExpect(status().isOk());
 
-        verify(gymFacade).changeTrainerPassword("jane.smith", "oldPass", "newPass");
+        verify(gymFacade).changeUserPassword("jane.smith", "oldPass", "newPass");
     }
 
     @Test
     void testChangePassword_InvalidOldPassword_Unauthorized() throws Exception {
         doThrow(new AuthenticationException("Invalid old password"))
-                .when(gymFacade).changeTraineePassword("john.doe", "wrongOld", "newPass");
-        doThrow(new AuthenticationException("Invalid old password"))
-                .when(gymFacade).changeTrainerPassword("john.doe", "wrongOld", "newPass");
+                .when(gymFacade).changeUserPassword("john.doe", "wrongOld", "newPass");
 
         String requestBody = "{\n" +
                 "  \"username\": \"john.doe\",\n" +

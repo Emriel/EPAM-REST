@@ -11,9 +11,11 @@ import com.epam.springCoreTask.model.Trainee;
 import com.epam.springCoreTask.model.Trainer;
 import com.epam.springCoreTask.model.Training;
 import com.epam.springCoreTask.model.TrainingType;
+import com.epam.springCoreTask.model.User;
 import com.epam.springCoreTask.service.TraineeService;
 import com.epam.springCoreTask.service.TrainerService;
 import com.epam.springCoreTask.service.TrainingService;
+import com.epam.springCoreTask.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ public class GymFacadeImpl implements GymFacade {
     private final TraineeService traineeService;
     private final TrainerService trainerService;
     private final TrainingService trainingService;
+    private final UserService userService;
 
     public Trainee createTraineeProfile(String firstName, String lastName,
             LocalDate dateOfBirth, String address) {
@@ -204,5 +207,17 @@ public class GymFacadeImpl implements GymFacade {
     public void updateTraineeTrainersList(String traineeUsername, List<String> trainerUsernames) {
         log.info("Updating trainee trainers list through facade: traineeUsername={}", traineeUsername);
         traineeService.updateTraineeTrainersList(traineeUsername, trainerUsernames);
+    }
+
+    @Override
+    public User authenticateUser(String username, String password) {
+        log.info("Authenticating user through facade: username={}", username);
+        return userService.authenticateUser(username, password);
+    }
+
+    @Override
+    public void changeUserPassword(String username, String oldPassword, String newPassword) {
+        log.info("Changing user password through facade: username={}", username);
+        userService.changeUserPassword(username, oldPassword, newPassword);
     }
 }

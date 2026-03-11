@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.epam.springCoreTask.dto.request.ChangePasswordRequest;
-import com.epam.springCoreTask.exception.AuthenticationException;
 import com.epam.springCoreTask.facade.GymFacade;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,20 +45,9 @@ public class AuthController {
             @Parameter(description = "Password", required = true) @RequestParam String password) {
         log.info("Login attempt for user: {}", username);
         
-        try {
-            gymFacade.authenticateTrainee(username, password);
-            log.info("Trainee login successful: {}", username);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            try {
-                gymFacade.authenticateTrainer(username, password);
-                log.info("Trainer login successful: {}", username);
-                return ResponseEntity.ok().build();
-            } catch (Exception ex) {
-                log.warn("Login failed for user: {}", username);
-                throw new AuthenticationException("Invalid username or password");
-            }
-        }
+        gymFacade.authenticateUser(username, password);
+        log.info("User login successful: {}", username);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Change password", description = "Change user password")
@@ -74,23 +62,10 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         log.info("Password change request for user: {}", request.getUsername());
         
-        try {
-            gymFacade.changeTraineePassword(request.getUsername(), 
-                                           request.getOldPassword(), 
-                                           request.getNewPassword());
-            log.info("Trainee password changed successfully: {}", request.getUsername());
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            try {
-                gymFacade.changeTrainerPassword(request.getUsername(), 
-                                               request.getOldPassword(), 
-                                               request.getNewPassword());
-                log.info("Trainer password changed successfully: {}", request.getUsername());
-                return ResponseEntity.ok().build();
-            } catch (Exception ex) {
-                log.error("Password change failed for user: {}", request.getUsername());
-                throw ex;
-            }
-        }
+        gymFacade.changeUserPassword(request.getUsername(), 
+                                     request.getOldPassword(), 
+                                     request.getNewPassword());
+        log.info("User password changed successfully: {}", request.getUsername());
+        return ResponseEntity.ok().build();
     }
 }

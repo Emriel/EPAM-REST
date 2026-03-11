@@ -7,6 +7,7 @@ import com.epam.springCoreTask.model.Trainee;
 import com.epam.springCoreTask.model.Trainer;
 import com.epam.springCoreTask.model.Training;
 import com.epam.springCoreTask.model.TrainingType;
+import com.epam.springCoreTask.model.User;
 
 public interface GymFacade {
         Trainee createTraineeProfile(String firstName, String lastName, LocalDate dateOfBirth, String address);
@@ -38,16 +39,32 @@ public interface GymFacade {
 
         List<Training> getAllTrainings();
 
+        /**
+         * @deprecated Use {@link #authenticateUser(String, String)} instead
+         */
+        @Deprecated
         Trainee authenticateTrainee(String username, String password);
 
+        /**
+         * @deprecated Use {@link #authenticateUser(String, String)} instead
+         */
+        @Deprecated
         Trainer authenticateTrainer(String username, String password);
 
         Trainee getTraineeByUsername(String username);
 
         Trainer getTrainerByUsername(String username);
 
+        /**
+         * @deprecated Use {@link #changeUserPassword(String, String, String)} instead
+         */
+        @Deprecated
         void changeTraineePassword(String username, String oldPassword, String newPassword);
 
+        /**
+         * @deprecated Use {@link #changeUserPassword(String, String, String)} instead
+         */
+        @Deprecated
         void changeTrainerPassword(String username, String oldPassword, String newPassword);
 
         void activateTrainee(String username);
@@ -69,4 +86,8 @@ public interface GymFacade {
         List<Trainer> getTrainersNotAssignedToTrainee(String traineeUsername);
 
         void updateTraineeTrainersList(String traineeUsername, List<String> trainerUsernames);
+
+        User authenticateUser(String username, String password);
+
+        void changeUserPassword(String username, String oldPassword, String newPassword);
 }
