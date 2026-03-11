@@ -43,10 +43,11 @@ public class TrainerServiceImpl implements TrainerService {
         validationUtil.validateNotBlank(lastName, "Last name");
         validationUtil.validateNotBlank(specialization, "Specialization");
 
-        List<String> existingUsernames = new java.util.ArrayList<>(trainerRepository.findAllUsernames());
-        existingUsernames.addAll(traineeRepository.findAllUsernames());
-
-        String username = usernameGenerator.generateUsername(firstName, lastName, existingUsernames);
+        String username = usernameGenerator.generateUsername(
+                firstName,
+                lastName,
+                user -> traineeRepository.existsByUser_Username(user)
+                        || trainerRepository.existsByUser_Username(user));
         String password = passwordGenerator.generatePassword();
 
         TrainingType trainingType = trainingTypeRepository.findByName(specialization)

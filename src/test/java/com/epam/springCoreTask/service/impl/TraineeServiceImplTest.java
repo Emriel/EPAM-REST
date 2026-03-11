@@ -82,9 +82,12 @@ class TraineeServiceImplTest {
         LocalDate dateOfBirth = LocalDate.of(1990, 1, 1);
         String address = "123 Main St";
 
-        when(traineeRepository.findAllUsernames()).thenReturn(Arrays.asList("other.user"));
-        when(usernameGenerator.generateUsername(firstName, lastName, Arrays.asList("other.user")))
-                .thenReturn("john.doe");
+        when(usernameGenerator.generateUsername(eq(firstName), eq(lastName), any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.Predicate<String> checker = invocation.getArgument(2);
+                    // Simulate checking if username exists
+                    return "john.doe";
+                });
         when(passwordGenerator.generatePassword()).thenReturn("password123");
         when(traineeRepository.save(any(Trainee.class))).thenReturn(testTrainee);
 

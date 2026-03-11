@@ -164,6 +164,7 @@ class TrainingServiceImplTest {
 
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(testTrainee));
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(testTrainer));
+        when(trainingTypeRepository.findById(testTrainingType.getId())).thenReturn(Optional.of(testTrainingType));
 
         // Act & Assert
         assertThrows(TrainerNotAssignedException.class,

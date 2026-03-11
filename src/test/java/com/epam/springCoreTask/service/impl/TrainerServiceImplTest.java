@@ -87,10 +87,12 @@ class TrainerServiceImplTest {
         String lastName = "Smith";
         String specialization = "Yoga";
 
-        when(trainerRepository.findAllUsernames()).thenReturn(Arrays.asList("other.user"));
-        when(traineeRepository.findAllUsernames()).thenReturn(Arrays.asList("trainee.user"));
-        when(usernameGenerator.generateUsername(eq(firstName), eq(lastName), anyList()))
-                .thenReturn("jane.smith");
+        when(usernameGenerator.generateUsername(eq(firstName), eq(lastName), any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.Predicate<String> checker = invocation.getArgument(2);
+                    // Simulate checking if username exists
+                    return "jane.smith";
+                });
         when(passwordGenerator.generatePassword()).thenReturn("password123");
         when(trainingTypeRepository.findByName(specialization)).thenReturn(Optional.of(testTrainingType));
         when(trainerRepository.save(any(Trainer.class))).thenReturn(testTrainer);
@@ -128,9 +130,8 @@ class TrainerServiceImplTest {
         String lastName = "Smith";
         String specialization = "InvalidType";
 
-        when(trainerRepository.findAllUsernames()).thenReturn(new ArrayList<>());
-        when(traineeRepository.findAllUsernames()).thenReturn(new ArrayList<>());
-        when(usernameGenerator.generateUsername(eq(firstName), eq(lastName), anyList())).thenReturn("jane.smith");
+        // Only stub what's actually called before the exception
+        when(usernameGenerator.generateUsername(eq(firstName), eq(lastName), any())).thenReturn("jane.smith");
         when(passwordGenerator.generatePassword()).thenReturn("password123");
         when(trainingTypeRepository.findByName(specialization)).thenReturn(Optional.empty());
 
