@@ -127,7 +127,7 @@ public class TrainerServiceImpl implements TrainerService {
         log.debug("Fetching trainer by username: {}", username);
 
         return trainerRepository.findByUser_Username(username)
-                .orElseThrow(() -> new IllegalArgumentException("Trainer not found with username: " + username));
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with username: " + username));
     }
 
     @Override
@@ -168,6 +168,11 @@ public class TrainerServiceImpl implements TrainerService {
         log.debug("Fetching trainers not assigned to trainee: traineeUsername={}", traineeUsername);
 
         validationUtil.validateNotBlank(traineeUsername, "Trainee username");
+
+        if (!traineeRepository.existsByUser_Username(traineeUsername)) {
+            log.error("Trainee not found with username: {}", traineeUsername);
+            throw new EntityNotFoundException("Trainee not found with username: " + traineeUsername);
+        }
 
         List<Trainer> trainers = trainerRepository.findTrainersNotAssignedToTrainee(traineeUsername);
         log.info("Found {} unassigned trainers for trainee: {}", trainers.size(), traineeUsername);

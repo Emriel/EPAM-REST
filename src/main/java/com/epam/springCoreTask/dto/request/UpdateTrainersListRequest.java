@@ -4,7 +4,7 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,7 +19,7 @@ public class UpdateTrainersListRequest {
     @Schema(description = "Trainee username", example = "john.doe")
     private String traineeUsername;
 
-    @NotNull(message = "Trainers list is required")
+    @NotEmpty(message = "Trainers list cannot be empty")
     @Schema(description = "List of trainer usernames")
     private List<String> trainerUsernames;
 }

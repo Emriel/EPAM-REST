@@ -25,6 +25,7 @@ import com.epam.springCoreTask.dto.response.TraineeProfileResponse;
 import com.epam.springCoreTask.dto.response.TrainerProfileResponse;
 import com.epam.springCoreTask.dto.response.TrainerSummary;
 import com.epam.springCoreTask.dto.response.TrainingResponse;
+import com.epam.springCoreTask.exception.EntityNotFoundException;
 import com.epam.springCoreTask.mapper.TraineeMapper;
 import com.epam.springCoreTask.mapper.TrainerMapper;
 import com.epam.springCoreTask.mapper.TrainingMapper;
@@ -33,6 +34,7 @@ import com.epam.springCoreTask.model.Trainer;
 import com.epam.springCoreTask.model.Training;
 import com.epam.springCoreTask.model.TrainingType;
 import com.epam.springCoreTask.model.User;
+import com.epam.springCoreTask.repository.TrainingTypeRepository;
 import com.epam.springCoreTask.service.TraineeService;
 import com.epam.springCoreTask.service.TrainerService;
 import com.epam.springCoreTask.service.TrainingService;
@@ -61,6 +63,9 @@ class GymFacadeImplTest {
 
     @Mock
     private TrainingMapper trainingMapper;
+
+    @Mock
+    private TrainingTypeRepository trainingTypeRepository;
 
     @InjectMocks
     private GymFacadeImpl gymFacade;
@@ -182,10 +187,11 @@ class GymFacadeImplTest {
         TrainingRequest request = new TrainingRequest("unknown", "jane.smith",
                 "Morning Yoga", LocalDate.now(), 2);
         
-        when(traineeService.getTraineeByUsername("unknown")).thenReturn(null);
+        when(traineeService.getTraineeByUsername("unknown"))
+                .thenThrow(new EntityNotFoundException("Trainee not found with username: unknown"));
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> gymFacade.createTrainingSession(request));
 
         assertEquals("Trainee not found with username: unknown", exception.getMessage());
@@ -199,10 +205,11 @@ class GymFacadeImplTest {
                 "Morning Yoga", LocalDate.now(), 2);
         
         when(traineeService.getTraineeByUsername("john.doe")).thenReturn(testTrainee);
-        when(trainerService.getTrainerByUsername("unknown")).thenReturn(null);
+        when(trainerService.getTrainerByUsername("unknown"))
+                .thenThrow(new EntityNotFoundException("Trainer not found with username: unknown"));
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> gymFacade.createTrainingSession(request));
 
         assertEquals("Trainer not found with username: unknown", exception.getMessage());
@@ -235,9 +242,10 @@ class GymFacadeImplTest {
     void testUpdateTrainerProfile() {
         // Arrange
         TrainerUpdateRequest request = new TrainerUpdateRequest("jane.smith", "Jane Updated",
-                "Smith", true);
+                "Smith", "Yoga", true);
 
         when(trainerService.getTrainerByUsername("jane.smith")).thenReturn(testTrainer);
+        when(trainingTypeRepository.findByName("Yoga")).thenReturn(java.util.Optional.of(testTrainingType));
         when(trainerService.updateTrainer(testTrainer)).thenReturn(testTrainer);
         when(trainerMapper.toProfileResponse(testTrainer)).thenReturn(trainerProfileResponse);
 
@@ -249,6 +257,7 @@ class GymFacadeImplTest {
         assertEquals("jane.smith", result.getUsername());
         verify(trainerService).getTrainerByUsername("jane.smith");
         verify(trainerMapper).updateTrainerFromRequest(eq(request), eq(testTrainer));
+        verify(trainingTypeRepository).findByName("Yoga");
         verify(trainerService).updateTrainer(testTrainer);
         verify(trainerMapper).toProfileResponse(testTrainer);
     }

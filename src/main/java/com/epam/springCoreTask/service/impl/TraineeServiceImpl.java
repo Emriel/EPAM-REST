@@ -40,7 +40,9 @@ public class TraineeServiceImpl implements TraineeService {
 
         validationUtil.validateNotBlank(firstName, "First name");
         validationUtil.validateNotBlank(lastName, "Last name");
-        validationUtil.validateDateOfBirth(dateOfBirth);
+        if (dateOfBirth != null) {
+            validationUtil.validateDateOfBirth(dateOfBirth);
+        }
 
         String username = usernameGenerator.generateUsername(
                 firstName,
@@ -136,7 +138,7 @@ public class TraineeServiceImpl implements TraineeService {
         log.debug("Fetching trainee by username: {}", username);
 
         return traineeRepository.findByUser_Username(username)
-                .orElseThrow(() -> new IllegalArgumentException("Trainee not found with username: " + username));
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
     }
 
     @Override

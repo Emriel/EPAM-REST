@@ -22,7 +22,9 @@ import com.epam.springCoreTask.mapper.TrainingMapper;
 import com.epam.springCoreTask.model.Trainee;
 import com.epam.springCoreTask.model.Trainer;
 import com.epam.springCoreTask.model.Training;
+import com.epam.springCoreTask.model.TrainingType;
 import com.epam.springCoreTask.model.User;
+import com.epam.springCoreTask.repository.TrainingTypeRepository;
 import com.epam.springCoreTask.service.TraineeService;
 import com.epam.springCoreTask.service.TrainerService;
 import com.epam.springCoreTask.service.TrainingService;
@@ -43,6 +45,7 @@ public class GymFacadeImpl implements GymFacade {
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
     private final TrainingMapper trainingMapper;
+    private final TrainingTypeRepository trainingTypeRepository;
 
     @Override
     public RegistrationResponse createTraineeProfile(TraineeRegistrationRequest request) {
@@ -76,16 +79,7 @@ public class GymFacadeImpl implements GymFacade {
         log.info("Creating training session through facade: {}", request.getTrainingName());
 
         Trainee trainee = traineeService.getTraineeByUsername(request.getTraineeUsername());
-        if (trainee == null) {
-            log.error("Trainee not found with username: {}", request.getTraineeUsername());
-            throw new IllegalArgumentException("Trainee not found with username: " + request.getTraineeUsername());
-        }
-
         Trainer trainer = trainerService.getTrainerByUsername(request.getTrainerUsername());
-        if (trainer == null) {
-            log.error("Trainer not found with username: {}", request.getTrainerUsername());
-            throw new IllegalArgumentException("Trainer not found with username: " + request.getTrainerUsername());
-        }
 
         log.debug("Both trainee and trainer validated, creating training session");
         trainingService.createTraining(
@@ -115,6 +109,11 @@ public class GymFacadeImpl implements GymFacade {
         
         Trainer trainer = trainerService.getTrainerByUsername(request.getUsername());
         trainerMapper.updateTrainerFromRequest(request, trainer);
+        
+        TrainingType trainingType = trainingTypeRepository.findByName(request.getSpecialization())
+                .orElseThrow(() -> new com.epam.springCoreTask.exception.EntityNotFoundException(
+                        "Training type not found: " + request.getSpecialization()));
+        trainer.setSpecialization(trainingType);
         
         Trainer updatedTrainer = trainerService.updateTrainer(trainer);
         return trainerMapper.toProfileResponse(updatedTrainer);

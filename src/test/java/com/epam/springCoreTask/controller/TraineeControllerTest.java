@@ -106,6 +106,26 @@ class TraineeControllerTest {
     }
 
     @Test
+    void testRegisterTrainee_WithoutOptionalFields_Success() throws Exception {
+        when(gymFacade.createTraineeProfile(any(TraineeRegistrationRequest.class)))
+                .thenReturn(registrationResponse);
+
+        String requestBody = "{\n" +
+                "  \"firstName\": \"John\",\n" +
+                "  \"lastName\": \"Doe\"\n" +
+                "}";
+
+        mockMvc.perform(post("/api/trainees/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value("john.doe"))
+                .andExpect(jsonPath("$.password").value("password123"));
+
+        verify(gymFacade).createTraineeProfile(any(TraineeRegistrationRequest.class));
+    }
+
+    @Test
     void testGetTraineeProfile_Success() throws Exception {
         when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(traineeProfileResponse);
 

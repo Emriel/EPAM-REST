@@ -25,6 +25,10 @@ public class TrainerUpdateRequest {
     @Schema(description = "Last name", example = "Smith")
     private String lastName;
 
+    @NotBlank(message = "Specialization is required")
+    @Schema(description = "Specialization", example = "Yoga")
+    private String specialization;
+
     @NotNull(message = "Active status is required")
     @Schema(description = "Active status", example = "true")
     private Boolean isActive;

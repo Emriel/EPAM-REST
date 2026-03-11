@@ -130,6 +130,32 @@ class TraineeServiceImplTest {
     }
 
     @Test
+    void testCreateTrainee_WithoutOptionalFields_Success() {
+        // Arrange
+        String firstName = "John";
+        String lastName = "Doe";
+
+        when(usernameGenerator.generateUsername(eq(firstName), eq(lastName), any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.Predicate<String> checker = invocation.getArgument(2);
+                    return "john.doe";
+                });
+        when(passwordGenerator.generatePassword()).thenReturn("password123");
+        when(traineeRepository.save(any(Trainee.class))).thenReturn(testTrainee);
+
+        // Act
+        Trainee result = traineeService.createTrainee(firstName, lastName, null, null);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(testTrainee, result);
+        verify(validationUtil).validateNotBlank(firstName, "First name");
+        verify(validationUtil).validateNotBlank(lastName, "Last name");
+        verify(validationUtil, never()).validateDateOfBirth(any());
+        verify(traineeRepository).save(any(Trainee.class));
+    }
+
+    @Test
     void testUpdateTrainee_Success() {
         // Arrange
         when(traineeRepository.existsById(1L)).thenReturn(true);
@@ -254,7 +280,7 @@ class TraineeServiceImplTest {
         when(traineeRepository.findByUser_Username("unknown")).thenReturn(Optional.empty());
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> traineeService.getTraineeByUsername("unknown"));
 
         assertEquals("Trainee not found with username: unknown", exception.getMessage());

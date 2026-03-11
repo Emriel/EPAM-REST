@@ -140,6 +140,7 @@ class TrainerControllerTest {
                 "  \"username\": \"jane.smith\",\n" +
                 "  \"firstName\": \"Jane\",\n" +
                 "  \"lastName\": \"Smith\",\n" +
+                "  \"specialization\": \"Yoga\",\n" +
                 "  \"isActive\": true\n" +
                 "}";
 

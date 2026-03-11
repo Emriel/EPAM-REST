@@ -257,7 +257,7 @@ class TrainerServiceImplTest {
         when(trainerRepository.findByUser_Username("unknown")).thenReturn(Optional.empty());
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> trainerService.getTrainerByUsername("unknown"));
 
         assertEquals("Trainer not found with username: unknown", exception.getMessage());
@@ -308,6 +308,7 @@ class TrainerServiceImplTest {
         String traineeUsername = "john.doe";
         List<Trainer> unassignedTrainers = Arrays.asList(testTrainer);
 
+        when(traineeRepository.existsByUser_Username(traineeUsername)).thenReturn(true);
         when(trainerRepository.findTrainersNotAssignedToTrainee(traineeUsername)).thenReturn(unassignedTrainers);
 
         // Act
@@ -318,6 +319,7 @@ class TrainerServiceImplTest {
         assertEquals(1, result.size());
         assertEquals(testTrainer, result.get(0));
         verify(validationUtil).validateNotBlank(traineeUsername, "Trainee username");
+        verify(traineeRepository).existsByUser_Username(traineeUsername);
         verify(trainerRepository).findTrainersNotAssignedToTrainee(traineeUsername);
     }
 
@@ -326,6 +328,7 @@ class TrainerServiceImplTest {
         // Arrange
         String traineeUsername = "john.doe";
 
+        when(traineeRepository.existsByUser_Username(traineeUsername)).thenReturn(true);
         when(trainerRepository.findTrainersNotAssignedToTrainee(traineeUsername)).thenReturn(new ArrayList<>());
 
         // Act
@@ -334,6 +337,7 @@ class TrainerServiceImplTest {
         // Assert
         assertNotNull(result);
         assertEquals(0, result.size());
+        verify(traineeRepository).existsByUser_Username(traineeUsername);
         verify(trainerRepository).findTrainersNotAssignedToTrainee(traineeUsername);
     }
 
