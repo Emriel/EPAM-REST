@@ -1,9 +1,8 @@
 package com.epam.springCoreTask.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,8 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -25,13 +22,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.epam.springCoreTask.config.AuthenticationInterceptor;
 import com.epam.springCoreTask.config.LoggingInterceptor;
-import com.epam.springCoreTask.exception.EntityNotFoundException;
+import com.epam.springCoreTask.dto.request.TrainingRequest;
 import com.epam.springCoreTask.facade.GymFacade;
-import com.epam.springCoreTask.model.Trainee;
-import com.epam.springCoreTask.model.Trainer;
-import com.epam.springCoreTask.model.Training;
 import com.epam.springCoreTask.model.TrainingType;
-import com.epam.springCoreTask.model.User;import com.epam.springCoreTask.repository.TrainingTypeRepository;
+import com.epam.springCoreTask.repository.TrainingTypeRepository;
 
 @WebMvcTest(TrainingController.class)
 class TrainingControllerTest {
@@ -51,10 +45,7 @@ class TrainingControllerTest {
     @MockBean
     private LoggingInterceptor loggingInterceptor;
 
-    private Trainee trainee;
-    private Trainer trainer;
     private TrainingType trainingType;
-    private Training training;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -62,38 +53,11 @@ class TrainingControllerTest {
         when(authenticationInterceptor.preHandle(any(), any(), any())).thenReturn(true);
 
         trainingType = new TrainingType(1L, "Fitness");
-
-        User traineeUser = new User(1L, "John", "Doe", "john.doe", "password123", true);
-        trainee = new Trainee();
-        trainee.setId(1L);
-        trainee.setUser(traineeUser);
-        trainee.setDateOfBirth(LocalDate.of(1990, 1, 15));
-        trainee.setAddress("123 Main St");
-        trainee.setTrainers(new ArrayList<>());
-
-        User trainerUser = new User(2L, "Jane", "Smith", "jane.smith", "password123", true);
-        trainer = new Trainer();
-        trainer.setId(2L);
-        trainer.setUser(trainerUser);
-        trainer.setSpecialization(trainingType);
-        trainer.setTrainees(new ArrayList<>());
-
-        training = new Training();
-        training.setId(1L);
-        training.setTrainingName("Morning Yoga");
-        training.setTrainingDate(LocalDate.of(2026, 3, 10));
-        training.setTrainingDuration(60);
-        training.setTrainingType(trainingType);
-        training.setTrainee(trainee);
-        training.setTrainer(trainer);
     }
 
     @Test
     void testAddTraining_Success() throws Exception {
-        when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(trainee);
-        when(gymFacade.getTrainerByUsername("jane.smith")).thenReturn(trainer);
-        when(gymFacade.createTrainingSession(anyLong(), anyLong(), anyString(), any(), any(), anyInt()))
-                .thenReturn(training);
+        doNothing().when(gymFacade).createTrainingSession(any(TrainingRequest.class));
 
         String requestBody = "{\n" +
                 "  \"traineeUsername\": \"john.doe\",\n" +
@@ -110,15 +74,13 @@ class TrainingControllerTest {
                 .header("Password", "password123"))
                 .andExpect(status().isOk());
 
-        verify(gymFacade).getTraineeByUsername("john.doe");
-        verify(gymFacade).getTrainerByUsername("jane.smith");
-        verify(gymFacade).createTrainingSession(anyLong(), anyLong(), anyString(), any(), any(), anyInt());
+        verify(gymFacade).createTrainingSession(any(TrainingRequest.class));
     }
 
     @Test
     void testAddTraining_TraineeNotFound_NotFound() throws Exception {
-        when(gymFacade.getTraineeByUsername("unknown")).thenThrow(
-                new EntityNotFoundException("Trainee not found"));
+        doThrow(new IllegalArgumentException("Trainee not found with username: unknown"))
+                .when(gymFacade).createTrainingSession(any(TrainingRequest.class));
 
         String requestBody = "{\n" +
                 "  \"traineeUsername\": \"unknown\",\n" +
@@ -133,16 +95,15 @@ class TrainingControllerTest {
                 .content(requestBody)
                 .header("Username", "john.doe")
                 .header("Password", "password123"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
 
-        verify(gymFacade).getTraineeByUsername("unknown");
+        verify(gymFacade).createTrainingSession(any(TrainingRequest.class));
     }
 
     @Test
     void testAddTraining_TrainerNotFound_NotFound() throws Exception {
-        when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(trainee);
-        when(gymFacade.getTrainerByUsername("unknown")).thenThrow(
-                new EntityNotFoundException("Trainer not found"));
+        doThrow(new IllegalArgumentException("Trainer not found with username: unknown"))
+                .when(gymFacade).createTrainingSession(any(TrainingRequest.class));
 
         String requestBody = "{\n" +
                 "  \"traineeUsername\": \"john.doe\",\n" +
@@ -157,9 +118,9 @@ class TrainingControllerTest {
                 .content(requestBody)
                 .header("Username", "john.doe")
                 .header("Password", "password123"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
 
-        verify(gymFacade).getTrainerByUsername("unknown");
+        verify(gymFacade).createTrainingSession(any(TrainingRequest.class));
     }
 
     @Test

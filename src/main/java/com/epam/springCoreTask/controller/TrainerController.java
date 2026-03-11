@@ -2,7 +2,6 @@ package com.epam.springCoreTask.controller;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,13 +21,10 @@ import com.epam.springCoreTask.dto.request.ActivationRequest;
 import com.epam.springCoreTask.dto.request.TrainerRegistrationRequest;
 import com.epam.springCoreTask.dto.request.TrainerUpdateRequest;
 import com.epam.springCoreTask.dto.response.RegistrationResponse;
-import com.epam.springCoreTask.dto.response.TraineeSummary;
 import com.epam.springCoreTask.dto.response.TrainerProfileResponse;
 import com.epam.springCoreTask.dto.response.TrainerSummary;
 import com.epam.springCoreTask.dto.response.TrainingResponse;
 import com.epam.springCoreTask.facade.GymFacade;
-import com.epam.springCoreTask.model.Trainer;
-import com.epam.springCoreTask.model.Training;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -61,18 +57,9 @@ public class TrainerController {
             @Valid @RequestBody TrainerRegistrationRequest request) {
         log.info("Registering new trainer: {} {}", request.getFirstName(), request.getLastName());
         
-        Trainer trainer = gymFacade.createTrainerProfile(
-            request.getFirstName(),
-            request.getLastName(),
-            request.getSpecialization()
-        );
+        RegistrationResponse response = gymFacade.createTrainerProfile(request);
         
-        RegistrationResponse response = new RegistrationResponse(
-            trainer.getUser().getUsername(),
-            trainer.getUser().getPassword()
-        );
-        
-        log.info("Trainer registered successfully: {}", trainer.getUser().getUsername());
+        log.info("Trainer registered successfully: {}", response.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -88,24 +75,7 @@ public class TrainerController {
             @RequestParam String username) {
         log.info("Fetching profile for trainer: {}", username);
         
-        Trainer trainer = gymFacade.getTrainerByUsername(username);
-        
-        List<TraineeSummary> trainees = trainer.getTrainees().stream()
-            .map(trainee -> new TraineeSummary(
-                trainee.getUser().getUsername(),
-                trainee.getUser().getFirstName(),
-                trainee.getUser().getLastName()
-            ))
-            .collect(Collectors.toList());
-        
-        TrainerProfileResponse response = new TrainerProfileResponse(
-            trainer.getUser().getUsername(),
-            trainer.getUser().getFirstName(),
-            trainer.getUser().getLastName(),
-            trainer.getSpecialization().getName(),
-            trainer.getUser().isActive(),
-            trainees
-        );
+        TrainerProfileResponse response = gymFacade.getTrainerByUsername(username);
         
         log.info("Profile retrieved for trainer: {}", username);
         return ResponseEntity.ok(response);
@@ -124,29 +94,7 @@ public class TrainerController {
             @Valid @RequestBody TrainerUpdateRequest request) {
         log.info("Updating profile for trainer: {}", request.getUsername());
         
-        Trainer trainer = gymFacade.getTrainerByUsername(request.getUsername());
-        trainer.getUser().setFirstName(request.getFirstName());
-        trainer.getUser().setLastName(request.getLastName());
-        trainer.getUser().setActive(request.getIsActive());
-        
-        trainer = gymFacade.updateTrainerProfile(trainer);
-        
-        List<TraineeSummary> trainees = trainer.getTrainees().stream()
-            .map(trainee -> new TraineeSummary(
-                trainee.getUser().getUsername(),
-                trainee.getUser().getFirstName(),
-                trainee.getUser().getLastName()
-            ))
-            .collect(Collectors.toList());
-        
-        TrainerProfileResponse response = new TrainerProfileResponse(
-            trainer.getUser().getUsername(),
-            trainer.getUser().getFirstName(),
-            trainer.getUser().getLastName(),
-            trainer.getSpecialization().getName(),
-            trainer.getUser().isActive(),
-            trainees
-        );
+        TrainerProfileResponse response = gymFacade.updateTrainerProfile(request);
         
         log.info("Profile updated for trainer: {}", request.getUsername());
         return ResponseEntity.ok(response);
@@ -186,18 +134,9 @@ public class TrainerController {
             @RequestParam String traineeUsername) {
         log.info("Fetching unassigned trainers for trainee: {}", traineeUsername);
         
-        List<Trainer> trainers = gymFacade.getTrainersNotAssignedToTrainee(traineeUsername);
+        List<TrainerSummary> response = gymFacade.getTrainersNotAssignedToTrainee(traineeUsername);
         
-        List<TrainerSummary> response = trainers.stream()
-            .map(trainer -> new TrainerSummary(
-                trainer.getUser().getUsername(),
-                trainer.getUser().getFirstName(),
-                trainer.getUser().getLastName(),
-                trainer.getSpecialization().getName()
-            ))
-            .collect(Collectors.toList());
-        
-        log.info("Retrieved {} unassigned trainers for trainee: {}", trainers.size(), traineeUsername);
+        log.info("Retrieved {} unassigned trainers for trainee: {}", response.size(), traineeUsername);
         return ResponseEntity.ok(response);
     }
 
@@ -220,24 +159,11 @@ public class TrainerController {
             @RequestParam(required = false) String traineeName) {
         log.info("Fetching trainings for trainer: {}", username);
         
-        List<Training> trainings = gymFacade.getTrainerTrainingsWithCriteria(
+        List<TrainingResponse> response = gymFacade.getTrainerTrainingsWithCriteria(
             username, fromDate, toDate, traineeName
         );
         
-        List<TrainingResponse> response = trainings.stream()
-            .map(training -> new TrainingResponse(
-                training.getTrainingName(),
-                training.getTrainingDate(),
-                training.getTrainingType().getName(),
-                training.getTrainingDuration(),
-                training.getTrainer().getUser().getFirstName() + " " + 
-                    training.getTrainer().getUser().getLastName(),
-                training.getTrainee().getUser().getFirstName() + " " + 
-                    training.getTrainee().getUser().getLastName()
-            ))
-            .collect(Collectors.toList());
-        
-        log.info("Retrieved {} trainings for trainer: {}", trainings.size(), username);
+        log.info("Retrieved {} trainings for trainer: {}", response.size(), username);
         return ResponseEntity.ok(response);
     }
 }

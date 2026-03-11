@@ -3,69 +3,34 @@ package com.epam.springCoreTask.facade;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.epam.springCoreTask.dto.request.TraineeRegistrationRequest;
+import com.epam.springCoreTask.dto.request.TraineeUpdateRequest;
+import com.epam.springCoreTask.dto.request.TrainerRegistrationRequest;
+import com.epam.springCoreTask.dto.request.TrainerUpdateRequest;
+import com.epam.springCoreTask.dto.request.TrainingRequest;
+import com.epam.springCoreTask.dto.response.RegistrationResponse;
+import com.epam.springCoreTask.dto.response.TraineeProfileResponse;
+import com.epam.springCoreTask.dto.response.TrainerProfileResponse;
+import com.epam.springCoreTask.dto.response.TrainerSummary;
+import com.epam.springCoreTask.dto.response.TrainingResponse;
 import com.epam.springCoreTask.model.Trainee;
 import com.epam.springCoreTask.model.Trainer;
-import com.epam.springCoreTask.model.Training;
-import com.epam.springCoreTask.model.TrainingType;
 import com.epam.springCoreTask.model.User;
 
 public interface GymFacade {
-        Trainee createTraineeProfile(String firstName, String lastName, LocalDate dateOfBirth, String address);
+        RegistrationResponse createTraineeProfile(TraineeRegistrationRequest request);
 
-        Trainer createTrainerProfile(String firstName, String lastName, String specialization);
+        RegistrationResponse createTrainerProfile(TrainerRegistrationRequest request);
 
-        Training createTrainingSession(Long traineeId, Long trainerId, String trainingName, TrainingType trainingType,
-                        LocalDate trainingDate, int trainingDuration);
+        void createTrainingSession(TrainingRequest request);
 
-        List<Training> getTraineeTrainings(Long traineeId);
+        TraineeProfileResponse updateTraineeProfile(TraineeUpdateRequest request);
 
-        List<Training> getTrainerTrainings(Long trainerId);
+        TrainerProfileResponse updateTrainerProfile(TrainerUpdateRequest request);
 
-        Trainee updateTraineeProfile(Trainee trainee);
+        TraineeProfileResponse getTraineeByUsername(String username);
 
-        Trainer updateTrainerProfile(Trainer trainer);
-
-        void deleteTraineeProfile(Long traineeId);
-
-        Trainee getTraineeById(Long id);
-
-        Trainer getTrainerById(Long id);
-
-        Training getTrainingById(Long id);
-
-        List<Trainee> getAllTrainees();
-
-        List<Trainer> getAllTrainers();
-
-        List<Training> getAllTrainings();
-
-        /**
-         * @deprecated Use {@link #authenticateUser(String, String)} instead
-         */
-        @Deprecated
-        Trainee authenticateTrainee(String username, String password);
-
-        /**
-         * @deprecated Use {@link #authenticateUser(String, String)} instead
-         */
-        @Deprecated
-        Trainer authenticateTrainer(String username, String password);
-
-        Trainee getTraineeByUsername(String username);
-
-        Trainer getTrainerByUsername(String username);
-
-        /**
-         * @deprecated Use {@link #changeUserPassword(String, String, String)} instead
-         */
-        @Deprecated
-        void changeTraineePassword(String username, String oldPassword, String newPassword);
-
-        /**
-         * @deprecated Use {@link #changeUserPassword(String, String, String)} instead
-         */
-        @Deprecated
-        void changeTrainerPassword(String username, String oldPassword, String newPassword);
+        TrainerProfileResponse getTrainerByUsername(String username);
 
         void activateTrainee(String username);
 
@@ -77,17 +42,30 @@ public interface GymFacade {
 
         void deleteTraineeByUsername(String username);
 
-        List<Training> getTraineeTrainingsWithCriteria(String traineeUsername, LocalDate fromDate,
+        List<TrainingResponse> getTraineeTrainingsWithCriteria(String traineeUsername, LocalDate fromDate,
                         LocalDate toDate, String trainerName, String trainingTypeName);
 
-        List<Training> getTrainerTrainingsWithCriteria(String trainerUsername, LocalDate fromDate,
+        List<TrainingResponse> getTrainerTrainingsWithCriteria(String trainerUsername, LocalDate fromDate,
                         LocalDate toDate, String traineeName);
 
-        List<Trainer> getTrainersNotAssignedToTrainee(String traineeUsername);
+        List<TrainerSummary> getTrainersNotAssignedToTrainee(String traineeUsername);
 
-        void updateTraineeTrainersList(String traineeUsername, List<String> trainerUsernames);
+        List<TrainerSummary> updateTraineeTrainersList(String traineeUsername, List<String> trainerUsernames);
 
         User authenticateUser(String username, String password);
 
         void changeUserPassword(String username, String oldPassword, String newPassword);
+
+        // Internal methods that still return entities (for service layer usage)
+        /**
+         * @deprecated Internal use only - controllers should use DTO methods
+         */
+        @Deprecated
+        Trainee getTraineeEntityByUsername(String username);
+
+        /**
+         * @deprecated Internal use only - controllers should use DTO methods
+         */
+        @Deprecated
+        Trainer getTrainerEntityByUsername(String username);
 }

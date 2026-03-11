@@ -2,7 +2,6 @@ package com.epam.springCoreTask.controller;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -28,8 +27,6 @@ import com.epam.springCoreTask.dto.response.TraineeProfileResponse;
 import com.epam.springCoreTask.dto.response.TrainerSummary;
 import com.epam.springCoreTask.dto.response.TrainingResponse;
 import com.epam.springCoreTask.facade.GymFacade;
-import com.epam.springCoreTask.model.Trainee;
-import com.epam.springCoreTask.model.Training;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -62,19 +59,9 @@ public class TraineeController {
             @Valid @RequestBody TraineeRegistrationRequest request) {
         log.info("Registering new trainee: {} {}", request.getFirstName(), request.getLastName());
         
-        Trainee trainee = gymFacade.createTraineeProfile(
-            request.getFirstName(),
-            request.getLastName(),
-            request.getDateOfBirth(),
-            request.getAddress()
-        );
+        RegistrationResponse response = gymFacade.createTraineeProfile(request);
         
-        RegistrationResponse response = new RegistrationResponse(
-            trainee.getUser().getUsername(),
-            trainee.getUser().getPassword()
-        );
-        
-        log.info("Trainee registered successfully: {}", trainee.getUser().getUsername());
+        log.info("Trainee registered successfully: {}", response.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -90,26 +77,7 @@ public class TraineeController {
             @RequestParam String username) {
         log.info("Fetching profile for trainee: {}", username);
         
-        Trainee trainee = gymFacade.getTraineeByUsername(username);
-        
-        List<TrainerSummary> trainers = trainee.getTrainers().stream()
-            .map(trainer -> new TrainerSummary(
-                trainer.getUser().getUsername(),
-                trainer.getUser().getFirstName(),
-                trainer.getUser().getLastName(),
-                trainer.getSpecialization().getName()
-            ))
-            .collect(Collectors.toList());
-        
-        TraineeProfileResponse response = new TraineeProfileResponse(
-            trainee.getUser().getUsername(),
-            trainee.getUser().getFirstName(),
-            trainee.getUser().getLastName(),
-            trainee.getDateOfBirth(),
-            trainee.getAddress(),
-            trainee.getUser().isActive(),
-            trainers
-        );
+        TraineeProfileResponse response = gymFacade.getTraineeByUsername(username);
         
         log.info("Profile retrieved for trainee: {}", username);
         return ResponseEntity.ok(response);
@@ -128,33 +96,7 @@ public class TraineeController {
             @Valid @RequestBody TraineeUpdateRequest request) {
         log.info("Updating profile for trainee: {}", request.getUsername());
         
-        Trainee trainee = gymFacade.getTraineeByUsername(request.getUsername());
-        trainee.getUser().setFirstName(request.getFirstName());
-        trainee.getUser().setLastName(request.getLastName());
-        trainee.setDateOfBirth(request.getDateOfBirth());
-        trainee.setAddress(request.getAddress());
-        trainee.getUser().setActive(request.getIsActive());
-        
-        trainee = gymFacade.updateTraineeProfile(trainee);
-        
-        List<TrainerSummary> trainers = trainee.getTrainers().stream()
-            .map(trainer -> new TrainerSummary(
-                trainer.getUser().getUsername(),
-                trainer.getUser().getFirstName(),
-                trainer.getUser().getLastName(),
-                trainer.getSpecialization().getName()
-            ))
-            .collect(Collectors.toList());
-        
-        TraineeProfileResponse response = new TraineeProfileResponse(
-            trainee.getUser().getUsername(),
-            trainee.getUser().getFirstName(),
-            trainee.getUser().getLastName(),
-            trainee.getDateOfBirth(),
-            trainee.getAddress(),
-            trainee.getUser().isActive(),
-            trainers
-        );
+        TraineeProfileResponse response = gymFacade.updateTraineeProfile(request);
         
         log.info("Profile updated for trainee: {}", request.getUsername());
         return ResponseEntity.ok(response);
@@ -213,17 +155,10 @@ public class TraineeController {
             @Valid @RequestBody UpdateTrainersListRequest request) {
         log.info("Updating trainers list for trainee: {}", request.getTraineeUsername());
         
-        gymFacade.updateTraineeTrainersList(request.getTraineeUsername(), request.getTrainerUsernames());
-        
-        Trainee trainee = gymFacade.getTraineeByUsername(request.getTraineeUsername());
-        List<TrainerSummary> trainers = trainee.getTrainers().stream()
-            .map(trainer -> new TrainerSummary(
-                trainer.getUser().getUsername(),
-                trainer.getUser().getFirstName(),
-                trainer.getUser().getLastName(),
-                trainer.getSpecialization().getName()
-            ))
-            .collect(Collectors.toList());
+        List<TrainerSummary> trainers = gymFacade.updateTraineeTrainersList(
+            request.getTraineeUsername(), 
+            request.getTrainerUsernames()
+        );
         
         log.info("Trainers list updated for trainee: {}", request.getTraineeUsername());
         return ResponseEntity.ok(trainers);
@@ -250,24 +185,11 @@ public class TraineeController {
             @RequestParam(required = false) String trainingType) {
         log.info("Fetching trainings for trainee: {}", username);
         
-        List<Training> trainings = gymFacade.getTraineeTrainingsWithCriteria(
+        List<TrainingResponse> response = gymFacade.getTraineeTrainingsWithCriteria(
             username, fromDate, toDate, trainerName, trainingType
         );
         
-        List<TrainingResponse> response = trainings.stream()
-            .map(training -> new TrainingResponse(
-                training.getTrainingName(),
-                training.getTrainingDate(),
-                training.getTrainingType().getName(),
-                training.getTrainingDuration(),
-                training.getTrainer().getUser().getFirstName() + " " + 
-                    training.getTrainer().getUser().getLastName(),
-                training.getTrainee().getUser().getFirstName() + " " + 
-                    training.getTrainee().getUser().getLastName()
-            ))
-            .collect(Collectors.toList());
-        
-        log.info("Retrieved {} trainings for trainee: {}", trainings.size(), username);
+        log.info("Retrieved {} trainings for trainee: {}", response.size(), username);
         return ResponseEntity.ok(response);
     }
 }

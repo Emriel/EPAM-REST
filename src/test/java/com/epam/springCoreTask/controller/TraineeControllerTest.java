@@ -15,7 +15,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,13 +27,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.epam.springCoreTask.config.AuthenticationInterceptor;
 import com.epam.springCoreTask.config.LoggingInterceptor;
+import com.epam.springCoreTask.dto.request.TraineeRegistrationRequest;
+import com.epam.springCoreTask.dto.request.TraineeUpdateRequest;
+import com.epam.springCoreTask.dto.response.RegistrationResponse;
+import com.epam.springCoreTask.dto.response.TraineeProfileResponse;
+import com.epam.springCoreTask.dto.response.TrainerSummary;
+import com.epam.springCoreTask.dto.response.TrainingResponse;
 import com.epam.springCoreTask.exception.EntityNotFoundException;
 import com.epam.springCoreTask.facade.GymFacade;
-import com.epam.springCoreTask.model.Trainee;
-import com.epam.springCoreTask.model.Trainer;
-import com.epam.springCoreTask.model.Training;
-import com.epam.springCoreTask.model.TrainingType;
-import com.epam.springCoreTask.model.User;
 
 @WebMvcTest(TraineeController.class)
 class TraineeControllerTest {
@@ -51,37 +51,30 @@ class TraineeControllerTest {
     @MockBean
     private LoggingInterceptor loggingInterceptor;
 
-    private Trainee trainee;
-    private Trainer trainer;
-    private TrainingType trainingType;
+    private TraineeProfileResponse traineeProfileResponse;
+    private RegistrationResponse registrationResponse;
+    private TrainerSummary trainerSummary;
 
     @BeforeEach
     void setUp() throws Exception {
         when(loggingInterceptor.preHandle(any(), any(), any())).thenReturn(true);
         when(authenticationInterceptor.preHandle(any(), any(), any())).thenReturn(true);
 
-        User traineeUser = new User(1L, "John", "Doe", "john.doe", "password123", true);
-        trainee = new Trainee();
-        trainee.setId(1L);
-        trainee.setUser(traineeUser);
-        trainee.setDateOfBirth(LocalDate.of(1990, 1, 15));
-        trainee.setAddress("123 Main St");
-        trainee.setTrainers(new ArrayList<>());
+        trainerSummary = new TrainerSummary("jane.smith", "Jane", "Smith", "Fitness");
 
-        trainingType = new TrainingType(1L, "Fitness");
+        traineeProfileResponse = new TraineeProfileResponse(
+                "john.doe", "John", "Doe",
+                LocalDate.of(1990, 1, 15), "123 Main St", true,
+                List.of(trainerSummary)
+        );
 
-        User trainerUser = new User(2L, "Jane", "Smith", "jane.smith", "password123", true);
-        trainer = new Trainer();
-        trainer.setId(2L);
-        trainer.setUser(trainerUser);
-        trainer.setSpecialization(trainingType);
-        trainer.setTrainees(new ArrayList<>());
+        registrationResponse = new RegistrationResponse("john.doe", "password123");
     }
 
     @Test
     void testRegisterTrainee_Success() throws Exception {
-        when(gymFacade.createTraineeProfile(anyString(), anyString(), any(), anyString()))
-                .thenReturn(trainee);
+        when(gymFacade.createTraineeProfile(any(TraineeRegistrationRequest.class)))
+                .thenReturn(registrationResponse);
 
         String requestBody = "{\n" +
                 "  \"firstName\": \"John\",\n" +
@@ -97,8 +90,7 @@ class TraineeControllerTest {
                 .andExpect(jsonPath("$.username").value("john.doe"))
                 .andExpect(jsonPath("$.password").value("password123"));
 
-        verify(gymFacade).createTraineeProfile("John", "Doe", 
-                LocalDate.of(1990, 1, 15), "123 Main St");
+        verify(gymFacade).createTraineeProfile(any(TraineeRegistrationRequest.class));
     }
 
     @Test
@@ -115,8 +107,7 @@ class TraineeControllerTest {
 
     @Test
     void testGetTraineeProfile_Success() throws Exception {
-        trainee.getTrainers().add(trainer);
-        when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(trainee);
+        when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(traineeProfileResponse);
 
         mockMvc.perform(get("/api/trainees")
                 .param("username", "john.doe")
@@ -146,9 +137,8 @@ class TraineeControllerTest {
 
     @Test
     void testUpdateTraineeProfile_Success() throws Exception {
-        trainee.getTrainers().add(trainer);
-        when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(trainee);
-        when(gymFacade.updateTraineeProfile(any(Trainee.class))).thenReturn(trainee);
+        when(gymFacade.updateTraineeProfile(any(TraineeUpdateRequest.class)))
+                .thenReturn(traineeProfileResponse);
 
         String requestBody = "{\n" +
                 "  \"username\": \"john.doe\",\n" +
@@ -167,7 +157,7 @@ class TraineeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("john.doe"));
 
-        verify(gymFacade).updateTraineeProfile(any(Trainee.class));
+        verify(gymFacade).updateTraineeProfile(any(TraineeUpdateRequest.class));
     }
 
     @Test
@@ -223,9 +213,8 @@ class TraineeControllerTest {
 
     @Test
     void testUpdateTrainersList_Success() throws Exception {
-        trainee.getTrainers().add(trainer);
-        doNothing().when(gymFacade).updateTraineeTrainersList(anyString(), anyList());
-        when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(trainee);
+        List<TrainerSummary> updatedTrainers = List.of(trainerSummary);
+        when(gymFacade.updateTraineeTrainersList(anyString(), anyList())).thenReturn(updatedTrainers);
 
         String requestBody = "{\n" +
                 "  \"traineeUsername\": \"john.doe\",\n" +
@@ -245,16 +234,16 @@ class TraineeControllerTest {
 
     @Test
     void testGetTraineeTrainings_Success() throws Exception {
-        Training training = new Training();
-        training.setId(1L);
-        training.setTrainingName("Morning Yoga");
-        training.setTrainingDate(LocalDate.of(2026, 3, 10));
-        training.setTrainingDuration(60);
-        training.setTrainingType(trainingType);
-        training.setTrainee(trainee);
-        training.setTrainer(trainer);
+        TrainingResponse trainingResponse = new TrainingResponse(
+                "Morning Yoga",
+                LocalDate.of(2026, 3, 10),
+                "Fitness",
+                60,
+                "Jane Smith",
+                "John Doe"
+        );
 
-        List<Training> trainings = List.of(training);
+        List<TrainingResponse> trainings = List.of(trainingResponse);
         when(gymFacade.getTraineeTrainingsWithCriteria(anyString(), any(), any(), any(), any()))
                 .thenReturn(trainings);
 

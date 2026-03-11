@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.epam.springCoreTask.dto.request.TrainingRequest;
 import com.epam.springCoreTask.dto.response.TrainingTypeResponse;
 import com.epam.springCoreTask.facade.GymFacade;
-import com.epam.springCoreTask.model.Trainee;
-import com.epam.springCoreTask.model.Trainer;
 import com.epam.springCoreTask.model.TrainingType;
 import com.epam.springCoreTask.repository.TrainingTypeRepository;
 
@@ -55,17 +53,7 @@ public class TrainingController {
         log.info("Creating training: {} for trainee: {} with trainer: {}", 
                  request.getTrainingName(), request.getTraineeUsername(), request.getTrainerUsername());
         
-        Trainee trainee = gymFacade.getTraineeByUsername(request.getTraineeUsername());
-        Trainer trainer = gymFacade.getTrainerByUsername(request.getTrainerUsername());
-        
-        gymFacade.createTrainingSession(
-            trainee.getId(),
-            trainer.getId(),
-            request.getTrainingName(),
-            trainer.getSpecialization(),
-            request.getTrainingDate(),
-            request.getTrainingDuration()
-        );
+        gymFacade.createTrainingSession(request);
         
         log.info("Training created successfully: {}", request.getTrainingName());
         return ResponseEntity.ok().build();

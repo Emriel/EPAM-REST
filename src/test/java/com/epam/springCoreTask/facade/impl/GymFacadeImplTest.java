@@ -15,6 +15,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.epam.springCoreTask.dto.request.TraineeRegistrationRequest;
+import com.epam.springCoreTask.dto.request.TraineeUpdateRequest;
+import com.epam.springCoreTask.dto.request.TrainerRegistrationRequest;
+import com.epam.springCoreTask.dto.request.TrainerUpdateRequest;
+import com.epam.springCoreTask.dto.request.TrainingRequest;
+import com.epam.springCoreTask.dto.response.RegistrationResponse;
+import com.epam.springCoreTask.dto.response.TraineeProfileResponse;
+import com.epam.springCoreTask.dto.response.TrainerProfileResponse;
+import com.epam.springCoreTask.dto.response.TrainerSummary;
+import com.epam.springCoreTask.dto.response.TrainingResponse;
+import com.epam.springCoreTask.mapper.TraineeMapper;
+import com.epam.springCoreTask.mapper.TrainerMapper;
+import com.epam.springCoreTask.mapper.TrainingMapper;
 import com.epam.springCoreTask.model.Trainee;
 import com.epam.springCoreTask.model.Trainer;
 import com.epam.springCoreTask.model.Training;
@@ -23,6 +36,7 @@ import com.epam.springCoreTask.model.User;
 import com.epam.springCoreTask.service.TraineeService;
 import com.epam.springCoreTask.service.TrainerService;
 import com.epam.springCoreTask.service.TrainingService;
+import com.epam.springCoreTask.service.UserService;
 
 @ExtendWith(MockitoExtension.class)
 class GymFacadeImplTest {
@@ -36,6 +50,18 @@ class GymFacadeImplTest {
     @Mock
     private TrainingService trainingService;
 
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private TraineeMapper traineeMapper;
+
+    @Mock
+    private TrainerMapper trainerMapper;
+
+    @Mock
+    private TrainingMapper trainingMapper;
+
     @InjectMocks
     private GymFacadeImpl gymFacade;
 
@@ -43,16 +69,21 @@ class GymFacadeImplTest {
     private Trainer testTrainer;
     private Training testTraining;
     private TrainingType testTrainingType;
+    private TraineeProfileResponse traineeProfileResponse;
+    private TrainerProfileResponse trainerProfileResponse;
+    private TrainingResponse trainingResponse;
 
     @BeforeEach
     void setUp() {
         User traineeUser = new User();
         traineeUser.setUsername("john.doe");
+        traineeUser.setPassword("password123");
         traineeUser.setFirstName("John");
         traineeUser.setLastName("Doe");
 
         User trainerUser = new User();
         trainerUser.setUsername("jane.smith");
+        trainerUser.setPassword("password123");
         trainerUser.setFirstName("Jane");
         trainerUser.setLastName("Smith");
 
@@ -79,368 +110,210 @@ class GymFacadeImplTest {
         testTraining.setTrainingType(testTrainingType);
         testTraining.setTrainingDate(LocalDate.now().plusDays(1));
         testTraining.setTrainingDuration(2);
+
+        traineeProfileResponse = new TraineeProfileResponse("john.doe", "John", "Doe",
+                LocalDate.of(1990, 1, 1), "123 Main St", true, List.of());
+
+        trainerProfileResponse = new TrainerProfileResponse("jane.smith", "Jane", "Smith",
+                "Yoga", true, List.of());
+
+        trainingResponse = new TrainingResponse("Morning Yoga", LocalDate.now().plusDays(1),
+                "Yoga", 2, "Jane Smith", "John Doe");
     }
 
     @Test
     void testCreateTraineeProfile() {
         // Arrange
-        String firstName = "John";
-        String lastName = "Doe";
-        LocalDate dateOfBirth = LocalDate.of(1990, 1, 1);
-        String address = "123 Main St";
+        TraineeRegistrationRequest request = new TraineeRegistrationRequest(
+                "John", "Doe", LocalDate.of(1990, 1, 1), "123 Main St");
 
-        when(traineeService.createTrainee(firstName, lastName, dateOfBirth, address)).thenReturn(testTrainee);
+        when(traineeService.createTrainee("John", "Doe", LocalDate.of(1990, 1, 1), "123 Main St"))
+                .thenReturn(testTrainee);
 
         // Act
-        Trainee result = gymFacade.createTraineeProfile(firstName, lastName, dateOfBirth, address);
+        RegistrationResponse result = gymFacade.createTraineeProfile(request);
 
         // Assert
         assertNotNull(result);
-        assertEquals(testTrainee, result);
-        verify(traineeService).createTrainee(firstName, lastName, dateOfBirth, address);
+        assertEquals("john.doe", result.getUsername());
+        assertEquals("password123", result.getPassword());
+        verify(traineeService).createTrainee("John", "Doe", LocalDate.of(1990, 1, 1), "123 Main St");
     }
 
     @Test
     void testCreateTrainerProfile() {
         // Arrange
-        String firstName = "Jane";
-        String lastName = "Smith";
-        String specialization = "Yoga";
+        TrainerRegistrationRequest request = new TrainerRegistrationRequest("Jane", "Smith", "Yoga");
 
-        when(trainerService.createTrainer(firstName, lastName, specialization)).thenReturn(testTrainer);
+        when(trainerService.createTrainer("Jane", "Smith", "Yoga")).thenReturn(testTrainer);
 
         // Act
-        Trainer result = gymFacade.createTrainerProfile(firstName, lastName, specialization);
+        RegistrationResponse result = gymFacade.createTrainerProfile(request);
 
         // Assert
         assertNotNull(result);
-        assertEquals(testTrainer, result);
-        verify(trainerService).createTrainer(firstName, lastName, specialization);
+        assertEquals("jane.smith", result.getUsername());
+        assertEquals("password123", result.getPassword());
+        verify(trainerService).createTrainer("Jane", "Smith", "Yoga");
     }
 
     @Test
     void testCreateTrainingSession_Success() {
         // Arrange
-        Long traineeId = 1L;
-        Long trainerId = 1L;
-        String trainingName = "Morning Yoga";
-        LocalDate trainingDate = LocalDate.now().plusDays(1);
-        int duration = 2;
+        TrainingRequest request = new TrainingRequest("john.doe", "jane.smith",
+                "Morning Yoga", LocalDate.now().plusDays(1), 2);
 
-        when(traineeService.getTraineeById(traineeId)).thenReturn(testTrainee);
-        when(trainerService.getTrainerById(trainerId)).thenReturn(testTrainer);
-        when(trainingService.createTraining(traineeId, trainerId, trainingName, testTrainingType, trainingDate,
-                duration)).thenReturn(testTraining);
+        when(traineeService.getTraineeByUsername("john.doe")).thenReturn(testTrainee);
+        when(trainerService.getTrainerByUsername("jane.smith")).thenReturn(testTrainer);
 
         // Act
-        Training result = gymFacade.createTrainingSession(traineeId, trainerId, trainingName, testTrainingType,
-                trainingDate, duration);
+        gymFacade.createTrainingSession(request);
 
         // Assert
-        assertNotNull(result);
-        assertEquals(testTraining, result);
-        verify(traineeService).getTraineeById(traineeId);
-        verify(trainerService).getTrainerById(trainerId);
-        verify(trainingService).createTraining(traineeId, trainerId, trainingName, testTrainingType, trainingDate,
-                duration);
+        verify(traineeService).getTraineeByUsername("john.doe");
+        verify(trainerService).getTrainerByUsername("jane.smith");
+        verify(trainingService).createTraining(eq(1L), eq(1L), eq("Morning Yoga"),
+                eq(testTrainingType), eq(LocalDate.now().plusDays(1)), eq(2));
     }
 
     @Test
     void testCreateTrainingSession_TraineeNotFound() {
         // Arrange
-        when(traineeService.getTraineeById(999L)).thenReturn(null);
+        TrainingRequest request = new TrainingRequest("unknown", "jane.smith",
+                "Morning Yoga", LocalDate.now(), 2);
+        
+        when(traineeService.getTraineeByUsername("unknown")).thenReturn(null);
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> gymFacade.createTrainingSession(999L, 1L, "Training", testTrainingType, LocalDate.now(), 2));
+                () -> gymFacade.createTrainingSession(request));
 
-        assertEquals("Trainee not found with id: 999", exception.getMessage());
+        assertEquals("Trainee not found with username: unknown", exception.getMessage());
         verify(trainingService, never()).createTraining(any(), any(), any(), any(), any(), anyInt());
     }
 
     @Test
     void testCreateTrainingSession_TrainerNotFound() {
         // Arrange
-        when(traineeService.getTraineeById(1L)).thenReturn(testTrainee);
-        when(trainerService.getTrainerById(999L)).thenReturn(null);
+        TrainingRequest request = new TrainingRequest("john.doe", "unknown",
+                "Morning Yoga", LocalDate.now(), 2);
+        
+        when(traineeService.getTraineeByUsername("john.doe")).thenReturn(testTrainee);
+        when(trainerService.getTrainerByUsername("unknown")).thenReturn(null);
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> gymFacade.createTrainingSession(1L, 999L, "Training", testTrainingType, LocalDate.now(), 2));
+                () -> gymFacade.createTrainingSession(request));
 
-        assertEquals("Trainer not found with id: 999", exception.getMessage());
+        assertEquals("Trainer not found with username: unknown", exception.getMessage());
         verify(trainingService, never()).createTraining(any(), any(), any(), any(), any(), anyInt());
-    }
-
-    @Test
-    void testGetTraineeTrainings() {
-        // Arrange
-        Long traineeId = 1L;
-        testTraining.setTrainee(testTrainee);
-        List<Training> allTrainings = Arrays.asList(testTraining);
-
-        when(trainingService.getAllTrainings()).thenReturn(allTrainings);
-
-        // Act
-        List<Training> result = gymFacade.getTraineeTrainings(traineeId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(testTraining, result.get(0));
-        verify(trainingService).getAllTrainings();
-    }
-
-    @Test
-    void testGetTrainerTrainings() {
-        // Arrange
-        Long trainerId = 1L;
-        testTraining.setTrainer(testTrainer);
-        List<Training> allTrainings = Arrays.asList(testTraining);
-
-        when(trainingService.getAllTrainings()).thenReturn(allTrainings);
-
-        // Act
-        List<Training> result = gymFacade.getTrainerTrainings(trainerId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(testTraining, result.get(0));
-        verify(trainingService).getAllTrainings();
     }
 
     @Test
     void testUpdateTraineeProfile() {
         // Arrange
+        TraineeUpdateRequest request = new TraineeUpdateRequest("john.doe", "John Updated",
+                "Doe", LocalDate.of(1990, 1, 1), "456 New St", true);
+
+        when(traineeService.getTraineeByUsername("john.doe")).thenReturn(testTrainee);
         when(traineeService.updateTrainee(testTrainee)).thenReturn(testTrainee);
+        when(traineeMapper.toProfileResponse(testTrainee)).thenReturn(traineeProfileResponse);
 
         // Act
-        Trainee result = gymFacade.updateTraineeProfile(testTrainee);
+        TraineeProfileResponse result = gymFacade.updateTraineeProfile(request);
 
         // Assert
         assertNotNull(result);
-        assertEquals(testTrainee, result);
+        assertEquals("john.doe", result.getUsername());
+        verify(traineeService).getTraineeByUsername("john.doe");
+        verify(traineeMapper).updateTraineeFromRequest(eq(request), eq(testTrainee));
         verify(traineeService).updateTrainee(testTrainee);
+        verify(traineeMapper).toProfileResponse(testTrainee);
     }
 
     @Test
     void testUpdateTrainerProfile() {
         // Arrange
+        TrainerUpdateRequest request = new TrainerUpdateRequest("jane.smith", "Jane Updated",
+                "Smith", true);
+
+        when(trainerService.getTrainerByUsername("jane.smith")).thenReturn(testTrainer);
         when(trainerService.updateTrainer(testTrainer)).thenReturn(testTrainer);
+        when(trainerMapper.toProfileResponse(testTrainer)).thenReturn(trainerProfileResponse);
 
         // Act
-        Trainer result = gymFacade.updateTrainerProfile(testTrainer);
+        TrainerProfileResponse result = gymFacade.updateTrainerProfile(request);
 
         // Assert
         assertNotNull(result);
-        assertEquals(testTrainer, result);
+        assertEquals("jane.smith", result.getUsername());
+        verify(trainerService).getTrainerByUsername("jane.smith");
+        verify(trainerMapper).updateTrainerFromRequest(eq(request), eq(testTrainer));
         verify(trainerService).updateTrainer(testTrainer);
-    }
-
-    @Test
-    void testDeleteTraineeProfile_Success() {
-        // Arrange
-        Long traineeId = 1L;
-        when(traineeService.getTraineeById(traineeId)).thenReturn(testTrainee);
-
-        // Act
-        gymFacade.deleteTraineeProfile(traineeId);
-
-        // Assert
-        verify(traineeService).getTraineeById(traineeId);
-        verify(traineeService).deleteTrainee(testTrainee);
-    }
-
-    @Test
-    void testDeleteTraineeProfile_NotFound() {
-        // Arrange
-        Long traineeId = 999L;
-        when(traineeService.getTraineeById(traineeId)).thenReturn(null);
-
-        // Act
-        gymFacade.deleteTraineeProfile(traineeId);
-
-        // Assert
-        verify(traineeService).getTraineeById(traineeId);
-        verify(traineeService, never()).deleteTrainee(any());
-    }
-
-    @Test
-    void testGetTraineeById() {
-        // Arrange
-        when(traineeService.getTraineeById(1L)).thenReturn(testTrainee);
-
-        // Act
-        Trainee result = gymFacade.getTraineeById(1L);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(testTrainee, result);
-        verify(traineeService).getTraineeById(1L);
-    }
-
-    @Test
-    void testGetTrainerById() {
-        // Arrange
-        when(trainerService.getTrainerById(1L)).thenReturn(testTrainer);
-
-        // Act
-        Trainer result = gymFacade.getTrainerById(1L);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(testTrainer, result);
-        verify(trainerService).getTrainerById(1L);
-    }
-
-    @Test
-    void testGetTrainingById() {
-        // Arrange
-        when(trainingService.getTrainingById(1L)).thenReturn(testTraining);
-
-        // Act
-        Training result = gymFacade.getTrainingById(1L);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(testTraining, result);
-        verify(trainingService).getTrainingById(1L);
-    }
-
-    @Test
-    void testGetAllTrainees() {
-        // Arrange
-        List<Trainee> trainees = Arrays.asList(testTrainee);
-        when(traineeService.getAllTrainees()).thenReturn(trainees);
-
-        // Act
-        List<Trainee> result = gymFacade.getAllTrainees();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(traineeService).getAllTrainees();
-    }
-
-    @Test
-    void testGetAllTrainers() {
-        // Arrange
-        List<Trainer> trainers = Arrays.asList(testTrainer);
-        when(trainerService.getAllTrainers()).thenReturn(trainers);
-
-        // Act
-        List<Trainer> result = gymFacade.getAllTrainers();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(trainerService).getAllTrainers();
-    }
-
-    @Test
-    void testGetAllTrainings() {
-        // Arrange
-        List<Training> trainings = Arrays.asList(testTraining);
-        when(trainingService.getAllTrainings()).thenReturn(trainings);
-
-        // Act
-        List<Training> result = gymFacade.getAllTrainings();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(trainingService).getAllTrainings();
-    }
-
-    @Test
-    void testAuthenticateTrainee() {
-        // Arrange
-        String username = "john.doe";
-        String password = "password123";
-        when(traineeService.authenticateTrainee(username, password)).thenReturn(testTrainee);
-
-        // Act
-        Trainee result = gymFacade.authenticateTrainee(username, password);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(testTrainee, result);
-        verify(traineeService).authenticateTrainee(username, password);
-    }
-
-    @Test
-    void testAuthenticateTrainer() {
-        // Arrange
-        String username = "jane.smith";
-        String password = "password123";
-        when(trainerService.authenticateTrainer(username, password)).thenReturn(testTrainer);
-
-        // Act
-        Trainer result = gymFacade.authenticateTrainer(username, password);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(testTrainer, result);
-        verify(trainerService).authenticateTrainer(username, password);
+        verify(trainerMapper).toProfileResponse(testTrainer);
     }
 
     @Test
     void testGetTraineeByUsername() {
         // Arrange
-        String username = "john.doe";
-        when(traineeService.getTraineeByUsername(username)).thenReturn(testTrainee);
+        when(traineeService.getTraineeByUsername("john.doe")).thenReturn(testTrainee);
+        when(traineeMapper.toProfileResponse(testTrainee)).thenReturn(traineeProfileResponse);
 
         // Act
-        Trainee result = gymFacade.getTraineeByUsername(username);
+        TraineeProfileResponse result = gymFacade.getTraineeByUsername("john.doe");
 
         // Assert
         assertNotNull(result);
-        assertEquals(testTrainee, result);
-        verify(traineeService).getTraineeByUsername(username);
+        assertEquals("john.doe", result.getUsername());
+        assertEquals("John", result.getFirstName());
+        verify(traineeService).getTraineeByUsername("john.doe");
+        verify(traineeMapper).toProfileResponse(testTrainee);
     }
 
     @Test
     void testGetTrainerByUsername() {
         // Arrange
-        String username = "jane.smith";
-        when(trainerService.getTrainerByUsername(username)).thenReturn(testTrainer);
+        when(trainerService.getTrainerByUsername("jane.smith")).thenReturn(testTrainer);
+        when(trainerMapper.toProfileResponse(testTrainer)).thenReturn(trainerProfileResponse);
 
         // Act
-        Trainer result = gymFacade.getTrainerByUsername(username);
+        TrainerProfileResponse result = gymFacade.getTrainerByUsername("jane.smith");
 
         // Assert
         assertNotNull(result);
-        assertEquals(testTrainer, result);
-        verify(trainerService).getTrainerByUsername(username);
+        assertEquals("jane.smith", result.getUsername());
+        assertEquals("Jane", result.getFirstName());
+        verify(trainerService).getTrainerByUsername("jane.smith");
+        verify(trainerMapper).toProfileResponse(testTrainer);
     }
 
     @Test
-    void testChangeTraineePassword() {
+    void testAuthenticateUser() {
+        // Arrange
+        User user = testTrainee.getUser();
+        when(userService.authenticateUser("john.doe", "password123")).thenReturn(user);
+
+        // Act
+        User result = gymFacade.authenticateUser("john.doe", "password123");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(user, result);
+        verify(userService).authenticateUser("john.doe", "password123");
+    }
+
+    @Test
+    void testChangeUserPassword() {
         // Arrange
         String username = "john.doe";
         String oldPassword = "oldPass";
         String newPassword = "newPass";
 
         // Act
-        gymFacade.changeTraineePassword(username, oldPassword, newPassword);
+        gymFacade.changeUserPassword(username, oldPassword, newPassword);
 
         // Assert
-        verify(traineeService).changeTraineePassword(username, oldPassword, newPassword);
-    }
-
-    @Test
-    void testChangeTrainerPassword() {
-        // Arrange
-        String username = "jane.smith";
-        String oldPassword = "oldPass";
-        String newPassword = "newPass";
-
-        // Act
-        gymFacade.changeTrainerPassword(username, oldPassword, newPassword);
-
-        // Assert
-        verify(trainerService).changeTrainerPassword(username, oldPassword, newPassword);
+        verify(userService).changeUserPassword(username, oldPassword, newPassword);
     }
 
     @Test
@@ -512,19 +385,23 @@ class GymFacadeImplTest {
         String trainerName = "Jane";
         String trainingTypeName = "Yoga";
         List<Training> trainings = Arrays.asList(testTraining);
+        List<TrainingResponse> trainingResponses = Arrays.asList(trainingResponse);
 
         when(trainingService.getTraineeTrainingsWithCriteria(traineeUsername, fromDate, toDate, trainerName,
                 trainingTypeName)).thenReturn(trainings);
+        when(trainingMapper.toTrainingResponseList(trainings)).thenReturn(trainingResponses);
 
         // Act
-        List<Training> result = gymFacade.getTraineeTrainingsWithCriteria(traineeUsername, fromDate, toDate,
+        List<TrainingResponse> result = gymFacade.getTraineeTrainingsWithCriteria(traineeUsername, fromDate, toDate,
                 trainerName, trainingTypeName);
 
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
+        assertEquals("Morning Yoga", result.get(0).getTrainingName());
         verify(trainingService).getTraineeTrainingsWithCriteria(traineeUsername, fromDate, toDate, trainerName,
                 trainingTypeName);
+        verify(trainingMapper).toTrainingResponseList(trainings);
     }
 
     @Test
@@ -535,18 +412,22 @@ class GymFacadeImplTest {
         LocalDate toDate = LocalDate.now().plusDays(7);
         String traineeName = "John";
         List<Training> trainings = Arrays.asList(testTraining);
+        List<TrainingResponse> trainingResponses = Arrays.asList(trainingResponse);
 
         when(trainingService.getTrainerTrainingsWithCriteria(trainerUsername, fromDate, toDate, traineeName))
                 .thenReturn(trainings);
+        when(trainingMapper.toTrainingResponseList(trainings)).thenReturn(trainingResponses);
 
         // Act
-        List<Training> result = gymFacade.getTrainerTrainingsWithCriteria(trainerUsername, fromDate, toDate,
+        List<TrainingResponse> result = gymFacade.getTrainerTrainingsWithCriteria(trainerUsername, fromDate, toDate,
                 traineeName);
 
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
+        assertEquals("Morning Yoga", result.get(0).getTrainingName());
         verify(trainingService).getTrainerTrainingsWithCriteria(trainerUsername, fromDate, toDate, traineeName);
+        verify(trainingMapper).toTrainingResponseList(trainings);
     }
 
     @Test
@@ -554,16 +435,21 @@ class GymFacadeImplTest {
         // Arrange
         String traineeUsername = "john.doe";
         List<Trainer> trainers = Arrays.asList(testTrainer);
+        TrainerSummary trainerSummary = new TrainerSummary("jane.smith", "Jane", "Smith", "Yoga");
+        List<TrainerSummary> trainerSummaries = Arrays.asList(trainerSummary);
 
         when(trainerService.getTrainersNotAssignedToTrainee(traineeUsername)).thenReturn(trainers);
+        when(trainerMapper.toTrainerSummaryList(trainers)).thenReturn(trainerSummaries);
 
         // Act
-        List<Trainer> result = gymFacade.getTrainersNotAssignedToTrainee(traineeUsername);
+        List<TrainerSummary> result = gymFacade.getTrainersNotAssignedToTrainee(traineeUsername);
 
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
+        assertEquals("jane.smith", result.get(0).getUsername());
         verify(trainerService).getTrainersNotAssignedToTrainee(traineeUsername);
+        verify(trainerMapper).toTrainerSummaryList(trainers);
     }
 
     @Test
@@ -571,11 +457,24 @@ class GymFacadeImplTest {
         // Arrange
         String traineeUsername = "john.doe";
         List<String> trainerUsernames = Arrays.asList("trainer1", "trainer2");
+        TrainerSummary trainerSummary = new TrainerSummary("jane.smith", "Jane", "Smith", "Yoga");
+        List<TrainerSummary> trainerSummaries = List.of(trainerSummary);
+        
+        testTrainee.getTrainers().add(testTrainer);
+
+        doNothing().when(traineeService).updateTraineeTrainersList(traineeUsername, trainerUsernames);
+        when(traineeService.getTraineeByUsername(traineeUsername)).thenReturn(testTrainee);
+        when(trainerMapper.toTrainerSummaryList(testTrainee.getTrainers())).thenReturn(trainerSummaries);
 
         // Act
-        gymFacade.updateTraineeTrainersList(traineeUsername, trainerUsernames);
+        List<TrainerSummary> result = gymFacade.updateTraineeTrainersList(traineeUsername, trainerUsernames);
 
         // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("jane.smith", result.get(0).getUsername());
         verify(traineeService).updateTraineeTrainersList(traineeUsername, trainerUsernames);
+        verify(traineeService).getTraineeByUsername(traineeUsername);
+        verify(trainerMapper).toTrainerSummaryList(testTrainee.getTrainers());
     }
 }
