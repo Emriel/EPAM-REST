@@ -109,8 +109,7 @@ class TraineeControllerTest {
     void testGetTraineeProfile_Success() throws Exception {
         when(gymFacade.getTraineeByUsername("john.doe")).thenReturn(traineeProfileResponse);
 
-        mockMvc.perform(get("/api/trainees")
-                .param("username", "john.doe")
+        mockMvc.perform(get("/api/trainees/username/{username}", "john.doe")
                 .header("Username", "john.doe")
                 .header("Password", "password123"))
                 .andExpect(status().isOk())
@@ -128,8 +127,7 @@ class TraineeControllerTest {
         when(gymFacade.getTraineeByUsername("unknown")).thenThrow(
                 new EntityNotFoundException("Trainee not found"));
 
-        mockMvc.perform(get("/api/trainees")
-                .param("username", "unknown")
+        mockMvc.perform(get("/api/trainees/username/{username}", "unknown")
                 .header("Username", "john.doe")
                 .header("Password", "password123"))
                 .andExpect(status().isNotFound());
@@ -149,7 +147,7 @@ class TraineeControllerTest {
                 "  \"isActive\": true\n" +
                 "}";
 
-        mockMvc.perform(put("/api/trainees")
+        mockMvc.perform(put("/api/trainees/username/{username}", "john.doe")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
                 .header("Username", "john.doe")
@@ -164,8 +162,7 @@ class TraineeControllerTest {
     void testDeleteTraineeProfile_Success() throws Exception {
         doNothing().when(gymFacade).deleteTraineeByUsername("john.doe");
 
-        mockMvc.perform(delete("/api/trainees")
-                .param("username", "john.doe")
+        mockMvc.perform(delete("/api/trainees/username/{username}", "john.doe")
                 .header("Username", "john.doe")
                 .header("Password", "password123"))
                 .andExpect(status().isOk());
@@ -182,7 +179,7 @@ class TraineeControllerTest {
                 "  \"isActive\": true\n" +
                 "}";
 
-        mockMvc.perform(patch("/api/trainees/status")
+        mockMvc.perform(patch("/api/trainees/username/{username}/status", "john.doe")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
                 .header("Username", "john.doe")
@@ -201,7 +198,7 @@ class TraineeControllerTest {
                 "  \"isActive\": false\n" +
                 "}";
 
-        mockMvc.perform(patch("/api/trainees/status")
+        mockMvc.perform(patch("/api/trainees/username/{username}/status", "john.doe")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
                 .header("Username", "john.doe")
@@ -221,7 +218,7 @@ class TraineeControllerTest {
                 "  \"trainerUsernames\": [\"jane.smith\"]\n" +
                 "}";
 
-        mockMvc.perform(put("/api/trainees/trainers")
+        mockMvc.perform(put("/api/trainees/username/{username}/trainers", "john.doe")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
                 .header("Username", "john.doe")
@@ -247,8 +244,7 @@ class TraineeControllerTest {
         when(gymFacade.getTraineeTrainingsWithCriteria(anyString(), any(), any(), any(), any()))
                 .thenReturn(trainings);
 
-        mockMvc.perform(get("/api/trainees/trainings")
-                .param("username", "john.doe")
+        mockMvc.perform(get("/api/trainees/username/{username}/trainings", "john.doe")
                 .header("Username", "john.doe")
                 .header("Password", "password123"))
                 .andExpect(status().isOk())

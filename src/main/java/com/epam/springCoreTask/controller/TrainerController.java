@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -69,10 +70,10 @@ public class TrainerController {
         @ApiResponse(responseCode = "404", description = "Trainer not found", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @GetMapping
+    @GetMapping("/username/{username}")
     public ResponseEntity<TrainerProfileResponse> getTrainerProfile(
             @Parameter(description = "Username of the trainer", required = true)
-            @RequestParam String username) {
+            @PathVariable String username) {
         log.info("Fetching profile for trainer: {}", username);
         
         TrainerProfileResponse response = gymFacade.getTrainerByUsername(username);
@@ -89,14 +90,18 @@ public class TrainerController {
         @ApiResponse(responseCode = "400", description = "Invalid request", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @PutMapping
+    @PutMapping("/username/{username}")
     public ResponseEntity<TrainerProfileResponse> updateTrainerProfile(
+            @Parameter(description = "Username of the trainer", required = true)
+            @PathVariable String username,
             @Valid @RequestBody TrainerUpdateRequest request) {
-        log.info("Updating profile for trainer: {}", request.getUsername());
+        log.info("Updating profile for trainer: {}", username);
         
+        // Override username from path variable
+        request.setUsername(username);
         TrainerProfileResponse response = gymFacade.updateTrainerProfile(request);
         
-        log.info("Profile updated for trainer: {}", request.getUsername());
+        log.info("Profile updated for trainer: {}", username);
         return ResponseEntity.ok(response);
     }
 
@@ -106,18 +111,20 @@ public class TrainerController {
         @ApiResponse(responseCode = "404", description = "Trainer not found", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @PatchMapping("/status")
+    @PatchMapping("/username/{username}/status")
     public ResponseEntity<Void> changeTrainerStatus(
+            @Parameter(description = "Username of the trainer", required = true)
+            @PathVariable String username,
             @Valid @RequestBody ActivationRequest request) {
-        log.info("Changing status for trainer: {} to {}", request.getUsername(), request.getIsActive());
+        log.info("Changing status for trainer: {} to {}", username, request.getIsActive());
         
         if (request.getIsActive()) {
-            gymFacade.activateTrainer(request.getUsername());
+            gymFacade.activateTrainer(username);
         } else {
-            gymFacade.deactivateTrainer(request.getUsername());
+            gymFacade.deactivateTrainer(username);
         }
         
-        log.info("Status changed for trainer: {}", request.getUsername());
+        log.info("Status changed for trainer: {}", username);
         return ResponseEntity.ok().build();
     }
 
@@ -147,10 +154,10 @@ public class TrainerController {
         @ApiResponse(responseCode = "404", description = "Trainer not found", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @GetMapping("/trainings")
+    @GetMapping("/username/{username}/trainings")
     public ResponseEntity<List<TrainingResponse>> getTrainerTrainings(
             @Parameter(description = "Username of the trainer", required = true)
-            @RequestParam String username,
+            @PathVariable String username,
             @Parameter(description = "Filter by period from date")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @Parameter(description = "Filter by period to date")

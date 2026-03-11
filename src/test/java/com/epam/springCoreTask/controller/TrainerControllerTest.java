@@ -106,8 +106,7 @@ class TrainerControllerTest {
     void testGetTrainerProfile_Success() throws Exception {
         when(gymFacade.getTrainerByUsername("jane.smith")).thenReturn(trainerProfileResponse);
 
-        mockMvc.perform(get("/api/trainers")
-                .param("username", "jane.smith")
+        mockMvc.perform(get("/api/trainers/username/{username}", "jane.smith")
                 .header("Username", "jane.smith")
                 .header("Password", "password123"))
                 .andExpect(status().isOk())
@@ -126,8 +125,7 @@ class TrainerControllerTest {
         when(gymFacade.getTrainerByUsername("unknown")).thenThrow(
                 new EntityNotFoundException("Trainer not found"));
 
-        mockMvc.perform(get("/api/trainers")
-                .param("username", "unknown")
+        mockMvc.perform(get("/api/trainers/username/{username}", "unknown")
                 .header("Username", "jane.smith")
                 .header("Password", "password123"))
                 .andExpect(status().isNotFound());
@@ -145,7 +143,7 @@ class TrainerControllerTest {
                 "  \"isActive\": true\n" +
                 "}";
 
-        mockMvc.perform(put("/api/trainers")
+        mockMvc.perform(put("/api/trainers/username/{username}", "jane.smith")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
                 .header("Username", "jane.smith")
@@ -165,7 +163,7 @@ class TrainerControllerTest {
                 "  \"isActive\": true\n" +
                 "}";
 
-        mockMvc.perform(patch("/api/trainers/status")
+        mockMvc.perform(patch("/api/trainers/username/{username}/status", "jane.smith")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
                 .header("Username", "jane.smith")
@@ -184,7 +182,7 @@ class TrainerControllerTest {
                 "  \"isActive\": false\n" +
                 "}";
 
-        mockMvc.perform(patch("/api/trainers/status")
+        mockMvc.perform(patch("/api/trainers/username/{username}/status", "jane.smith")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
                 .header("Username", "jane.smith")
@@ -226,8 +224,7 @@ class TrainerControllerTest {
         when(gymFacade.getTrainerTrainingsWithCriteria(anyString(), any(), any(), any()))
                 .thenReturn(trainings);
 
-        mockMvc.perform(get("/api/trainers/trainings")
-                .param("username", "jane.smith")
+        mockMvc.perform(get("/api/trainers/username/{username}/trainings", "jane.smith")
                 .header("Username", "jane.smith")
                 .header("Password", "password123"))
                 .andExpect(status().isOk())

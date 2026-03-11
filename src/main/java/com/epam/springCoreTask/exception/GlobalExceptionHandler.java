@@ -5,11 +5,16 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -144,6 +149,83 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        log.warn("Malformed JSON request or missing request body: {}", ex.getMessage());
+        String message = "Invalid request body";
+        if (ex.getMessage() != null) {
+            if (ex.getMessage().contains("Required request body is missing")) {
+                message = "Request body is required";
+            } else if (ex.getMessage().contains("JSON parse error")) {
+                message = "Malformed JSON: " + extractJsonError(ex.getMessage());
+            } else {
+                message = "Invalid input format";
+            }
+        }
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                message
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.warn("Type mismatch for parameter '{}': {}", ex.getName(), ex.getMessage());
+        String message = String.format("Parameter '%s' should be of type %s",
+                ex.getName(),
+                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Invalid parameter type",
+                message
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoHandlerFound(NoHandlerFoundException ex) {
+        log.warn("No handler found for {} {}", ex.getHttpMethod(), ex.getRequestURL());
+        String message = String.format("Endpoint '%s %s' not found",
+                ex.getHttpMethod(),
+                ex.getRequestURL());
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                "Endpoint not found",
+                message
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        log.warn("Method not supported: {}", ex.getMessage());
+        String message = String.format("Request method '%s' not supported. Supported methods are: %s",
+                ex.getMethod(),
+                ex.getSupportedHttpMethods());
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "Method not allowed",
+                message
+        );
+        return new ResponseEntity<>(error, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        log.warn("Media type not supported: {}", ex.getMessage());
+        String message = String.format("Media type '%s' is not supported. Supported media types are: %s",
+                ex.getContentType(),
+                ex.getSupportedMediaTypes());
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
+                "Unsupported media type",
+                message
+        );
+        return new ResponseEntity<>(error, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
@@ -153,6 +235,14 @@ public class GlobalExceptionHandler {
                 "An unexpected error occurred. Please try again later."
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private String extractJsonError(String errorMessage) {
+        if (errorMessage.contains("Cannot deserialize value")) {
+            int idx = errorMessage.indexOf("Cannot deserialize");
+            return errorMessage.substring(idx, Math.min(idx + 150, errorMessage.length()));
+        }
+        return "Check JSON syntax and data types";
     }
 
     public static class ErrorResponse {

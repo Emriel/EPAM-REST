@@ -11,6 +11,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -71,10 +72,10 @@ public class TraineeController {
         @ApiResponse(responseCode = "404", description = "Trainee not found", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @GetMapping
+    @GetMapping("/username/{username}")
     public ResponseEntity<TraineeProfileResponse> getTraineeProfile(
             @Parameter(description = "Username of the trainee", required = true)
-            @RequestParam String username) {
+            @PathVariable String username) {
         log.info("Fetching profile for trainee: {}", username);
         
         TraineeProfileResponse response = gymFacade.getTraineeByUsername(username);
@@ -91,14 +92,18 @@ public class TraineeController {
         @ApiResponse(responseCode = "400", description = "Invalid request", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @PutMapping
+    @PutMapping("/username/{username}")
     public ResponseEntity<TraineeProfileResponse> updateTraineeProfile(
+            @Parameter(description = "Username of the trainee", required = true)
+            @PathVariable String username,
             @Valid @RequestBody TraineeUpdateRequest request) {
-        log.info("Updating profile for trainee: {}", request.getUsername());
+        log.info("Updating profile for trainee: {}", username);
         
+        // Override username from path variable
+        request.setUsername(username);
         TraineeProfileResponse response = gymFacade.updateTraineeProfile(request);
         
-        log.info("Profile updated for trainee: {}", request.getUsername());
+        log.info("Profile updated for trainee: {}", username);
         return ResponseEntity.ok(response);
     }
 
@@ -108,10 +113,10 @@ public class TraineeController {
         @ApiResponse(responseCode = "404", description = "Trainee not found", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @DeleteMapping
+    @DeleteMapping("/username/{username}")
     public ResponseEntity<Void> deleteTraineeProfile(
             @Parameter(description = "Username of the trainee", required = true)
-            @RequestParam String username) {
+            @PathVariable String username) {
         log.info("Deleting profile for trainee: {}", username);
         
         gymFacade.deleteTraineeByUsername(username);
@@ -126,18 +131,20 @@ public class TraineeController {
         @ApiResponse(responseCode = "404", description = "Trainee not found", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @PatchMapping("/status")
+    @PatchMapping("/username/{username}/status")
     public ResponseEntity<Void> changeTraineeStatus(
+            @Parameter(description = "Username of the trainee", required = true)
+            @PathVariable String username,
             @Valid @RequestBody ActivationRequest request) {
-        log.info("Changing status for trainee: {} to {}", request.getUsername(), request.getIsActive());
+        log.info("Changing status for trainee: {} to {}", username, request.getIsActive());
         
         if (request.getIsActive()) {
-            gymFacade.activateTrainee(request.getUsername());
+            gymFacade.activateTrainee(username);
         } else {
-            gymFacade.deactivateTrainee(request.getUsername());
+            gymFacade.deactivateTrainee(username);
         }
         
-        log.info("Status changed for trainee: {}", request.getUsername());
+        log.info("Status changed for trainee: {}", username);
         return ResponseEntity.ok().build();
     }
 
@@ -150,17 +157,19 @@ public class TraineeController {
         @ApiResponse(responseCode = "400", description = "Invalid request", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @PutMapping("/trainers")
+    @PutMapping("/username/{username}/trainers")
     public ResponseEntity<List<TrainerSummary>> updateTrainersList(
+            @Parameter(description = "Username of the trainee", required = true)
+            @PathVariable String username,
             @Valid @RequestBody UpdateTrainersListRequest request) {
-        log.info("Updating trainers list for trainee: {}", request.getTraineeUsername());
+        log.info("Updating trainers list for trainee: {}", username);
         
         List<TrainerSummary> trainers = gymFacade.updateTraineeTrainersList(
-            request.getTraineeUsername(), 
+            username, 
             request.getTrainerUsernames()
         );
         
-        log.info("Trainers list updated for trainee: {}", request.getTraineeUsername());
+        log.info("Trainers list updated for trainee: {}", username);
         return ResponseEntity.ok(trainers);
     }
 
@@ -171,10 +180,10 @@ public class TraineeController {
         @ApiResponse(responseCode = "404", description = "Trainee not found", 
                      content = @Content(schema = @Schema(implementation = String.class)))
     })
-    @GetMapping("/trainings")
+    @GetMapping("/username/{username}/trainings")
     public ResponseEntity<List<TrainingResponse>> getTraineeTrainings(
             @Parameter(description = "Username of the trainee", required = true)
-            @RequestParam String username,
+            @PathVariable String username,
             @Parameter(description = "Filter by period from date")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @Parameter(description = "Filter by period to date")
